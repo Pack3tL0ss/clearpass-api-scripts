@@ -21,3 +21,6 @@ CPPM:
 NOTIFY:
   service: PushBullet
   api_key: "pushbullet-api-key-goes-here"
+
+# -- additional logging
+debug: false
