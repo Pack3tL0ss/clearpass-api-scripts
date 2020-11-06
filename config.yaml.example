@@ -1,0 +1,23 @@
+---
+
+# cppm defaults
+# grant_type: client_credentials
+# webserver_port: 8080
+# username: nul (must provide value if grant_type: password)
+# password: nul (must provide value if grant_type: password)
+# FQDN can be VIP all servers in cluster with hostname in SAN will get cert
+CPPM:
+  fqdn: cppm.arubalab.net
+  client_id: Full API Client
+  client_secret: ClearPass-API-Client-Secret-Goes-Here
+  https_cert_p12: cppm.arubalab.net.p12
+  https_cert_passphrase: reD@cted!!
+  webserver: http://omv.arubalab.net
+  cert_dir: "/export/FileDump/certificates/LetsEncrypt"
+  
+# -- service: PushBullet is only valid service currently
+# -- Remove this section to disable Notification
+# -- Notifications only occur if Update or error (not if no update required)
+NOTIFY:
+  service: PushBullet
+  api_key: "pushbullet-api-key-goes-here"
