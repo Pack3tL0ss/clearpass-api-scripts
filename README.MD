@@ -65,8 +65,10 @@ Example Flow:
 
 Prerequisites/Requirements:
 
+- An API Client Configured in ClearPass Guest Interface, and appropriate configuration in this scripts config.yaml
 - The root/signing cert needs to be imported/enabled in the Trusted Certs in ClearPass (as with any https cert you would import).
 - The Auto-Renewal with LetsEncrypt or the like is handled by a different tool, the certificate needs to be available to whatever host runs cppm-synccerts (i.e. a mounted NAS drive).
+- ClearPass is instructed to import the certificate via the API, it does so by reaching out to a web-server and downloading the file.  This script starts a webserver which by default listens on port 8080 (cofnigurable), so that port would need to be available and allowed on the host this script runs on.
 
 >!!! **All servers in the cluster will be sent the same certificate** It's common to use a single certificate for all servers in a CPPM cluster, with the fqdn of the Cluster VIP as the CN, and the FQDNs of each individual server/alias in the SAN.  The script will get a list of all of the Servers in the cluster, and verify/update the https certificate on each of them using the same certificate (specified in the config).
 
@@ -105,3 +107,6 @@ ssh -t wade@omv "clearpass-api-scripts/venv/bin/python3 clearpass-api-scripts/cp
 You can see from the comments in the script above how the flow works.
 > One key note, to ssh from pfSense to my NAS.  Certificate Authentication is in use, so no password has to be sent, which allows the remote command to run from this script without prompt.
 The PushBullet Notification is redundant in the case of ClearPass, but I have other certificates that also use this same script.  That piece is obviously optional.
+
+You can also run this script manually:
+`./cppm-certsync.py`
