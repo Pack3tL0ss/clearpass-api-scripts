@@ -1,20 +1,17 @@
 # ClearPass API Scripts
 
-A collection of Aruba ClearPass API Scripts
-
-Visit [the official Aruba GitHub](https://github.com/aruba/) for additional tools from the Aruba Automation Team.
-
-------
-
-## Contents
-
 - [ClearPass API Scripts](#clearpass-api-scripts)
-  - [Contents](#contents)
   - [Setup](#setup)
   - [Current Tools](#current-tools)
   - [Certificate Sync](#certificate-sync)
 
 > Development is generally done in Ubuntu, scripts should work on other environments, but not necessarily tested.
+
+------
+
+A collection (of 1 currently) of Aruba ClearPass API Scripts
+
+Visit [the official Aruba GitHub](https://github.com/aruba/) for additional tools from the Aruba Automation Team.
 
 ------
 
