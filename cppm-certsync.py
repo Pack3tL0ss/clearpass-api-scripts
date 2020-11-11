@@ -124,7 +124,6 @@ def put_https_cert(servers: dict, le_exp: datetime.datetime, cppm_fqdn: str, tok
     for url in urls:
         try:
             r = requests.get(url[1], headers=headers)
-            # r.raise_for_status()
             if r.ok:
                 this_exp = r.json().get("expiry_date")
                 this_exp = datetime.datetime.strptime(this_exp, '%b %d, %Y %H:%M:%S %Z')
