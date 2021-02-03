@@ -1,11 +1,12 @@
+%YAML 1.2
 ---
 
-# cppm defaults
-# grant_type: client_credentials
-# webserver_port: 8080
-# username: nul (must provide value if grant_type: password)
-# password: nul (must provide value if grant_type: password)
-# FQDN can be VIP all servers in cluster with hostname in SAN will get cert
+# CPPM Defaults:
+# -- grant_type: client_credentials
+# -- webserver_port: 8080
+# -- username: nul (must provide value if grant_type: password)
+# -- password: nul (must provide value if grant_type: password)
+# -- FQDN can be VIP all servers in cluster with hostname in SAN will get cert
 CPPM:
   fqdn: cppm.arubalab.net
   client_id: Full API Client
@@ -14,6 +15,16 @@ CPPM:
   https_cert_passphrase: reD@cted!!
   webserver: http://omv.arubalab.net
   cert_dir: "/export/FileDump/certificates/LetsEncrypt"
+  # -- // used in pol-elements-from-csv.py \\ --
+  in_file: in/adgroup2tunnel.csv
+  authz_src: "arubalabAD"
+  role_name_pfx: "VPN-"
+  enf_profile_pfx: "Assign Tunnel "
+  role_mapping_name: "ANYCONNECT_ROLE_MAPPING"
+  role_mapping_description: "MAP Tips Role (VPN TUNNEL) Based on AD Group Membership"
+  enf_policy_name: "ANYCONNECT_ENFOREMENT_POLICY"
+  enf_policy_description: "Return Radius Accept if user Authorized for selected Tunnel"
+
   
 # -- service: PushBullet is only valid service currently
 # -- Remove this section to disable Notification
