@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2020-1.0
+# Version: 2020-1.1
 #
 
 import datetime
@@ -88,7 +88,7 @@ def get_server_ids(clearpass_fqdn: str, token_type: str, access_token: str) -> l
         log.error(f"exception: {e}")
         exit(1)
 
-    return {svr.get("fqdn"): svr.get("server_uuid") for svr in r.json().get('_embedded', {}).get('items', {})}
+    return {svr.get("fqdn") or svr.get("name"): svr.get("server_uuid") for svr in r.json().get('_embedded', {}).get('items', {})}
 
 
 def start_webserver():
