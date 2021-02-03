@@ -12,7 +12,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path, PurePath
 
 import requests
-from OpenSSL import crypto  # type: ignore
+from cryptography.hazmat.primitives.serialization import pkcs12
+# from OpenSSL import crypto  # type: ignore
 
 from common import cppmauth, log
 cppm_config = cppmauth.config.get("CPPM", {})
@@ -66,10 +67,13 @@ def verify_cert():
         log.fatal(f"{p.name} Not Found")
         exit(1)
 
-    le_p12 = crypto.load_pkcs12(open(p, 'rb').read(), cert_passphrase.encode("UTF-8"))
-    le_cert = le_p12.get_certificate()
-    le_exp = le_cert.get_notAfter().decode("UTF-8")
-    le_exp = datetime.datetime.strptime(le_exp, '%Y%m%d%H%M%SZ')
+    # le_p12 = crypto.load_pkcs12(open(p, 'rb').read(), cert_passphrase.encode("UTF-8"))
+    le_p12 = pkcs12.load_key_and_certificates(p.read_bytes(), cert_passphrase.encode("UTF-8"))
+    # le_cert = le_p12.get_certificate()
+    le_cert = le_p12[1]
+    le_exp = le_cert.not_valid_after
+    # le_exp = le_cert.get_notAfter().decode("UTF-8")
+    # le_exp = datetime.datetime.strptime(le_exp, '%Y%m%d%H%M%SZ')
 
     return le_exp
 
