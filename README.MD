@@ -4,6 +4,7 @@
   - [Setup](#setup)
   - [Current Tools](#current-tools)
   - [Certificate Sync](#certificate-sync)
+  - [xml-import-builder](#xml-import-builder)
 
 > Development is generally done in Ubuntu, scripts should work on other environments, but not necessarily tested.
 
@@ -40,6 +41,8 @@ cp config.yaml.example config.yaml
 Then use nano or your editor of preference to populate values in config.yaml (i.e. `nano config.yaml`)
 
 These scripts interact with the ClearPass API, so an API client needs to be configured for the scripts to use in the ClearPass Guest interface.
+
+>The `in`, `out`, and `log` directories are ignored by git.  The scripts will look for any input files in the `in` directory, will send any generated reports/output to `out` and will log to the `log` directory.
 
 ------
 
@@ -110,3 +113,32 @@ The PushBullet Notification is redundant in the case of ClearPass, but I have ot
 
 You can also run this script manually:
 `./cppm-certsync.py`
+
+------
+
+## xml-import-builder
+
+This script was built to aid in role/role-mapping/and enforcement-policy creation.
+
+> Note: Currently this tool has some configuration in the script itself (GLOBAL Variables near the top of the script.)
+
+**The Use Case:**
+
+Customer had an export that included 2 pertinent columns of data: AD Group and Cisco ASA/EasyConnect VPN Tunnel they were authorized to access based on that AD Group.
+
+The export was converted to csv and cleaned, up.  Header line was stripped out (the script doesn't try to detect the header).
+
+**Roles and Role Mapping are created with the following rules:**
+
+- User is member of X ad-group
+- Radius:Cisco-ASA Tunnel Group Name = Tunnel Group Name associated with the AD Group (sent in the Radius Request)
+
+Enforcement Policy is created with rules:
+
+- if Tips Role = *assigned from role mapping* then Allow Access Profile (send Radius Accept.)
+
+**USAGE:**
+You can specify `in_file` in the CPPM section of the configuration, or as the first argument when running the script.  Command line argument will be honored and `in_file` in config will be ignored if both are populated.
+API access is still required as some queries are done to gather data to populate the xml import.
+
+> Note the script also has a function and logic to creat the roles and role-mapping via the Rest API, those are commented out, as xml was going to be required for the enforcement anyway.
