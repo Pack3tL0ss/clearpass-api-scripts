@@ -6,6 +6,7 @@
 #
 
 import datetime
+import sys
 import socket
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -112,10 +113,18 @@ def start_webserver():
     return httpd
 
 
-def put_https_cert(servers: dict, le_exp: datetime.datetime, cppm_fqdn: str, token_type: str, access_token: str) -> list:
+def put_https_cert(
+    servers: dict,
+    le_exp: datetime.datetime,
+    cppm_fqdn: str,
+    token_type: str,
+    access_token: str,
+    server_version: float,
+) -> list:
     """Update https Certificate to CPPM"""
 
-    urls = [(svr, f"https://{cppm_fqdn}/api/server-cert/name/{uuid}/HTTPS") for svr, uuid in servers.items()]
+    svc = "HTTPS" if int(server_version[1]) < 10 else "HTTPS(RSA)"
+    urls = [(svr, f"https://{cppm_fqdn}/api/server-cert/name/{uuid}/{svc}") for svr, uuid in servers.items()]
 
     payload = {
             "pkcs12_file_url": f"{webserver}:{webserver_port}/{cert_p12}",
@@ -154,6 +163,27 @@ def put_https_cert(servers: dict, le_exp: datetime.datetime, cppm_fqdn: str, tok
 
     return _res
 
+def get_server_version(clearpass_fqdn: str, token_type: str, access_token: str) -> list:
+    """Get server version"""
+
+    url = "https://" + clearpass_fqdn + "/api/server/version"
+
+    headers = {'Content-Type': 'application/json', "Authorization": "{} {}".format(token_type, access_token)}
+
+    try:
+        r = requests.get(url, headers=headers)
+        r.raise_for_status()
+    except Exception as e:
+        log.error(f"exception: {e}")
+        exit(1)
+
+    try:
+        return r.json().get("cppm_version").split(".")[0:2]
+    except Exception as e:
+        print(e)
+        log.error(e)
+        exit(1)
+
 
 if __name__ == "__main__":
     httpd = None
@@ -166,16 +196,20 @@ if __name__ == "__main__":
 
     httpd = start_webserver()
 
+    # get server version
+    cppm_ver = get_server_version(*cppm_args)
+
     # push certs
-    res = put_https_cert(cluster_servers, le_exp, *cppm_args)
+    res = put_https_cert(cluster_servers, le_exp, *cppm_args, server_version=cppm_ver)
     log.info("Stopping WebServer")
     httpd.shutdown()
 
-    try:
-        push = load_pb()
-        if push and [r[1] for r in res if r[1] != "same"]:
-            res_str = "\n".join([f"{svr}: {result}" for svr, result in res])
-            push_res = push("ClearPass https Cert Update", res_str)
-            log.debug(f"Push Response:\n{push_res}")
-    except Exception as e:
-        log.exception(f"PushBullet Exception: {e}")
+    if "no-push" not in str(sys.argv):
+        try:
+            push = load_pb()
+            if push and [r[1] for r in res if r[1] != "same"]:
+                res_str = "\n".join([f"{svr}: {result}" for svr, result in res])
+                push_res = push("ClearPass https Cert Update", res_str)
+                log.debug(f"Push Response:\n{push_res}")
+        except Exception as e:
+            log.exception(f"PushBullet Exception: {e}")
