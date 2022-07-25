@@ -10,7 +10,7 @@
 
 ------
 
-A collection (of 1 currently) of Aruba ClearPass API Scripts
+A collection (of 2 currently) of Aruba ClearPass API Scripts
 
 Visit [the official Aruba GitHub](https://github.com/aruba/) for additional tools from the Aruba Automation Team.
 
