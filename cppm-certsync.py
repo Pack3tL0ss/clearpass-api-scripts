@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2020-1.1
+# Version: 2022-9.1
 #
 
 import datetime
@@ -152,6 +152,7 @@ def start_webserver(port: int = 8080):
 
 
 def put_https_cert(
+    webserver_url: str,
     servers: dict,
     le_exp: datetime.datetime,
     cppm_fqdn: str,
@@ -288,7 +289,7 @@ if __name__ == "__main__":
     cppm_ver = get_server_version(*cppm_args)
 
     # push certs
-    res = put_https_cert(webserver_full_url, cluster_servers, le_exp, *cppm_args)
+    res = put_https_cert(webserver_full_url, cluster_servers, le_exp, *cppm_args, server_version=cppm_ver)
 
     if httpd:
         log.info("Stopping WebServer")
