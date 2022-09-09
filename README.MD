@@ -24,9 +24,17 @@ Clone The Repo
 Setup the Virtual Environment
 
 ```bash
+export DEB_PYTHON_INSTALL_LAYOUT='deb'  # on POSIX / *NIX based system
+
 cd cppm-api-scripts
 python3 -m virtualenv venv
-python3 -m pip install --upgrade pip
+
+# Activate the venv
+. venv/bin/activate # Linux
+venv\Scripts\activate # Windows
+
+# install requirements
+python3 -m pip install -U pip
 python3 -m pip install -r requirements.txt
 ```
 
@@ -50,7 +58,7 @@ These scripts interact with the ClearPass API, so an API client needs to be conf
 
 ------
 
-## Certificate Sync
+### Certificate Sync
 
 This Script is used to Update ClearPass' https certificate with one from a provider such as LetsEncrypt
 
@@ -97,7 +105,7 @@ openssl pkcs12 -export -out /conf/acme/plex.arubalab.net.p12 -inkey /conf/acme/p
 openssl pkcs12 -export -out /conf/acme/cppm.arubalab.net.p12 -inkey /conf/acme/cppm.arubalab.net.key -in /conf/acme/cppm.arubalab.net.fullchain -password pass:reD@cted\!\!
 
 # -- // Copy Certificates to NAS \\ --
-cp /conf/acme/* /media/FileDump/certificates/LetsEncrypt/
+(cp /conf/acme/* /media/FileDump/certificates/LetsEncrypt/ >> /root/mv_certs.log) >>& /root/mv_certs.log
 umount /media/FileDump/
 
 # -- // Send a Notification via PushBullet \\ --
@@ -116,7 +124,7 @@ You can also run this script manually:
 
 ------
 
-## xml-import-builder
+### xml-import-builder
 
 This script was built to aid in role/role-mapping/and enforcement-policy creation.
 
