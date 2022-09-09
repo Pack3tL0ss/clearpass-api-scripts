@@ -75,7 +75,7 @@ def load_pb():
 
 
 def verify_config():
-    if None in [cert_p12, cert_passphrase, cert_dir, cppm_config.get("webserver", {}).get("base_url"), cppm_config.get("webserver", {}).get("port")]:
+    if None in [cert_p12, cert_passphrase, cppm_config.get("webserver", {}).get("base_url")]:
         log.fatal("config is missing a required variable, please see the example config")
         exit(1)
     elif NOTIFY and pb_key and not NOTIFY.get("service"):
@@ -96,7 +96,7 @@ def get_le_cert_from_external(webserver_full_url: str):
         sys.exit(1)
 
 def verify_cert(this_is_server: bool = True, webserver_full_url: str = None):
-    p = Path(PurePath(cert_dir, cert_p12))
+    p = Path(PurePath(cert_dir or Path().home(), cert_p12))
     if p.exists():
         pb = p.read_bytes()
     elif not this_is_server:
