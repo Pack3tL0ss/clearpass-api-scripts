@@ -3,7 +3,7 @@
 
 # CPPM Defaults:
 # -- grant_type: client_credentials
-# -- webserver_port: 8080
+# -- webserver: port: 8080
 # -- username: nul (must provide value if grant_type: password)
 # -- password: nul (must provide value if grant_type: password)
 # -- FQDN can be VIP all servers in cluster with hostname in SAN will get cert
@@ -11,10 +11,15 @@ CPPM:
   fqdn: cppm.arubalab.net
   client_id: Full API Client
   client_secret: ClearPass-API-Client-Secret-Goes-Here
-  https_cert_p12: cppm.arubalab.net.p12
+  https_cert_p12: cppm.arubalab.net.p12  # used as final portion of webserver full url, and as last part of local cert path
   https_cert_passphrase: reD@cted!!
-  webserver: http://omv.arubalab.net
+  webserver:
+    base_url: http://omv.arubalab.net  # ip or fqdn cppm would use to access server hosting the cert (this system or external)
+    port: 8080
+    path: "certs"
+  # The above will result in "http://omv.arubalab.net:8080/certs/cppm.arubalab.net.p12" being used as the full path where CPPM can get the cert
   cert_dir: "/export/FileDump/certificates/LetsEncrypt"
+
   # -- // used in pol-elements-from-csv.py \\ --
   in_file: in/adgroup2tunnel.csv
   authz_src: "arubalabAD"
@@ -25,7 +30,7 @@ CPPM:
   enf_policy_name: "ANYCONNECT_ENFOREMENT_POLICY"
   enf_policy_description: "Return Radius Accept if user Authorized for selected Tunnel"
 
-  
+
 # -- service: PushBullet is only valid service currently
 # -- Remove this section to disable Notification
 # -- Notifications only occur if Update or error (not if no update required)
