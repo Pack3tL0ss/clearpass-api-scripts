@@ -242,7 +242,7 @@ def get_webserver_url() -> Tuple[str, bool]:
         _ip_from_config = socket.getaddrinfo(webserver_base.replace("https://", "").replace("http://", "").split("/")[0], webserver_port)[0][-1][0]
         if _ip_from_config != my_ip:
             this_is_server = False
-        full_url = f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}"
+        full_url = f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}")
 
     if this_is_server and not full_url:
         port_str = ""
