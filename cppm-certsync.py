@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path, PurePath
 from typing import Tuple
 from rich.console import Console
+from yarl import URL
 
 import requests
 import netifaces
@@ -236,15 +237,26 @@ def get_webserver_url() -> Tuple[str, bool]:
     webserver_base = webserver_config.get("base_url")
     webserver_port = webserver_config.get("port", 8080)
     webserver_path = webserver_config.get("path", "")
-    this_is_server = True
-    full_url = None
-    if webserver_base:
-        _ip_from_config = socket.getaddrinfo(webserver_base.replace("https://", "").replace("http://", "").split("/")[0], webserver_port)[0][-1][0]
-        if _ip_from_config != my_ip:
-            this_is_server = False
-        full_url = f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}")
+    # full_url = None
+    full_url = URL(f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}"))
+    # if webserver_base:
+        # _ip_from_config = socket.getaddrinfo(webserver_base.replace("https://", "").replace("http://", "").split("/")[0], webserver_port)[0][-1][0]
+        # if _ip_from_config != my_ip:
+            # this_is_server = False
+        # full_url = f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}")
 
-    if this_is_server and not full_url:
+    # for item in socket.getaddrinfo(full_url.host, full_url.port):
+    #     if item[0].value == 2:
+    #         _ip_from_config = item[-1][0]
+    #         break
+    if socket.gethostbyname(full_url.host) in ["127.0.0.1", "::1", get_system_ip()]:
+        this_is_server = True
+    else:
+        this_is_server = False
+
+
+
+    if this_is_server and not webserver_base:
         port_str = ""
         proto = "http"
         path_str = "" if not webserver_path else f"/{webserver_path}"
@@ -253,7 +265,7 @@ def get_webserver_url() -> Tuple[str, bool]:
             if "443" in str(webserver_port):
                 proto = "https"
 
-        full_url = f"{proto}://{my_ip}{port_str}{path_str}/{cert_p12}"
+        full_url = URL(f"{proto}://{my_ip}{port_str}{path_str}/{cert_p12}")
 
     if not full_url:
         log.fatal("get_webserver_url() logic error, not full_url", show=True)
@@ -282,14 +294,14 @@ if __name__ == "__main__":
         c.print(f"[dark_orange]:warning:[/] webserver [cyan]{webserver_full_url}[/] defined in config does not appear to be this system.")
         c.print("skipping web_server startup.")
 
-    le_exp = verify_cert(this_is_server, webserver_full_url=webserver_full_url)
+    le_exp = verify_cert(this_is_server, webserver_full_url=str(webserver_full_url))
 
 
     # get server version
     cppm_ver = get_server_version(*cppm_args)
 
     # push certs
-    res = put_https_cert(webserver_full_url, cluster_servers, le_exp, *cppm_args, server_version=cppm_ver)
+    res = put_https_cert(str(webserver_full_url), cluster_servers, le_exp, *cppm_args, server_version=cppm_ver)
 
     if httpd:
         log.info("Stopping WebServer")
