@@ -14,3 +14,4 @@ pyOpenSSL>=19.1.0
 pushbullet.py>=0.8.1
 netifaces==0.11.0
 rich==12.5.1
+yarl
