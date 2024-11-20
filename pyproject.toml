@@ -1,0 +1,46 @@
+[project]
+name = "cppm"
+version = "0.1.0"
+description = "A CLI for interacting with Aruba ClearPass via API.  Facilitates bulk imports, exports, reporting."
+license = "MIT"
+authors = [{name="Wade Wells (Pack3tL0ss)", email="wade@consolepi.org"}]
+maintainers = [{name="Wade Wells (Pack3tL0ss)", email="wade@consolepi.org"}]
+readme = "README.md"
+repository = "https://github.com/Pack3tL0ss/cppm-api-cli"
+documentation = "https://cppm-api-cli.readthedocs.org"
+keywords = [
+    "cli",
+    "Aruba",
+    "Aruba Networks",
+    "Aruba Central",
+    "HPE",
+    "API",
+    "RESTFUL",
+    "REST"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+]
+
+[tool.hatchling.scripts]
+cencli = "centralcli.cli:app"
+
+[tool.hatchling.dependencies]
+python = ">=3.8,<4.0"
+typer = ">=0.6"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]
