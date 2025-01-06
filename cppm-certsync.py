@@ -112,7 +112,7 @@ def verify_cert(this_is_server: bool = True, webserver_full_url: str = None):
         backend=default_backend()
         )
     le_cert = le_p12[1]
-    le_exp = le_cert.not_valid_after
+    le_exp = le_cert.not_valid_after_utc
 
     return le_exp
 
