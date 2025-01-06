@@ -6,6 +6,7 @@
 #
 
 import datetime
+import pendulum
 import sys
 import socket
 import threading
@@ -178,8 +179,12 @@ def put_https_cert(
             r = requests.get(url[1], headers=headers)
             if r.ok:
                 rdict = r.json()
-                this_exp = rdict.get("expiry_date")
-                this_exp = datetime.datetime.strptime(this_exp, '%b %d, %Y %H:%M:%S %Z')
+                this_exp = rdict.get("expiry_date")  # looks like 'Apr 04, 2025 14:04:11 CDT'
+                tzstr = " ".join(this_exp.split()[-1:])  # zz format specifier doesn't work so need to split tz out.  See https://github.com/python-pendulum/pendulum/issues/279
+                tzstr = tzstr if tzstr != "CDT" else "CST6CDT"  # CDT is not a valid TZ specifier CST6CDT is
+                this_exp = pendulum.from_format(" ".join(this_exp.split()[0:-1]), 'MMM DD, YYYY HH:mm:ss', tz=tzstr)
+                this_exp = this_exp.in_timezone("UTC")  # covert to UTC to match tz of le_exp
+                # this_exp = datetime.datetime.strptime(this_exp, '%b %d, %Y %H:%M:%S %Z')
                 diff = le_exp - this_exp
                 is_self_signed = True if rdict.get("subject", "subject") == rdict.get("issued_by", "") else False
                 if diff.days > 0 or is_self_signed:
