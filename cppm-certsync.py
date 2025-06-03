@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2022-9.1
+# Version: 2025-9.2
 #
 
 import datetime
@@ -32,6 +32,15 @@ cert_dir = cppm_config.get("cert_dir")
 NOTIFY = cppmauth.config.get("NOTIFY", {})
 pb_key = NOTIFY.get("api_key")
 
+# certificate expiry looks like 'Apr 04, 2025 14:04:11 CDT'
+# but pendulum format specifier for timezone (zz) doesn't like some of the values "CDT, EDT..."
+# are not valid.  Below is used to get around this swapping for valid values from tz database
+TZ_NAMES = {
+    "EDT": "EST5EDT",
+    "CDT": "CST6CDT",
+    "MDT": "MST7MDT",
+    "PDT": "PST8PDT"
+}
 
 class CpHandler(BaseHTTPRequestHandler):
 
@@ -181,10 +190,9 @@ def put_https_cert(
                 rdict = r.json()
                 this_exp = rdict.get("expiry_date")  # looks like 'Apr 04, 2025 14:04:11 CDT'
                 tzstr = " ".join(this_exp.split()[-1:])  # zz format specifier doesn't work so need to split tz out.  See https://github.com/python-pendulum/pendulum/issues/279
-                tzstr = tzstr if tzstr != "CDT" else "CST6CDT"  # CDT is not a valid TZ specifier CST6CDT is
+                tzstr = TZ_NAMES.get(tzstr, tzstr)
                 this_exp = pendulum.from_format(" ".join(this_exp.split()[0:-1]), 'MMM DD, YYYY HH:mm:ss', tz=tzstr)
                 this_exp = this_exp.in_timezone("UTC")  # covert to UTC to match tz of le_exp
-                # this_exp = datetime.datetime.strptime(this_exp, '%b %d, %Y %H:%M:%S %Z')
                 diff = le_exp - this_exp
                 is_self_signed = True if rdict.get("subject", "subject") == rdict.get("issued_by", "") else False
                 if diff.days > 0 or is_self_signed:
