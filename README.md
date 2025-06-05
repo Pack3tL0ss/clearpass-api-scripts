@@ -83,6 +83,18 @@ Prerequisites/Requirements:
 
 >!!! **All servers in the cluster will be sent the same certificate** It's common to use a single certificate for all servers in a CPPM cluster, with the fqdn of the Cluster VIP as the CN, and the FQDNs of each individual server/alias in the SAN.  The script will get a list of all of the Servers in the cluster, and verify/update the https certificate on each of them using the same certificate (specified in the config).
 
+API Client Permissions:
+
+- API Services -> Custom
+  - Allow API Access -> Allow Access
+- Platform -> Read Only Access
+- Policy Manager -> Custom
+  - Certificates -> Read, Write, Delete
+  - External Servers - Endpoint Context Servers -> Read
+  - Platform - Cluster Wide Parameters -> Read
+  - Platform - Servers -> Read
+
+
 Working Example (this is how it's done in my lab):
 
 - pfSense handles certificate renewals for all hosts in my lab (via acme package available in package manager).

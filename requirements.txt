@@ -3,6 +3,7 @@
 aiohttp
 aiodns
 Brotli
+pytz
 cryptography>=42.0.7
 halo>=0.0.31
 Jinja2>=3.1.4

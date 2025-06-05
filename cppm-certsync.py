@@ -16,12 +16,14 @@ from typing import Tuple
 from rich.console import Console
 from yarl import URL
 
+import pytz
 import requests
 import netifaces
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from common import cppmauth, log
+
 cppm_config = cppmauth.config.get("CPPM", {})
 
 cppm_args = (cppmauth.clearpass_fqdn, cppmauth.token_type, cppmauth.access_token)
@@ -32,18 +34,24 @@ cert_dir = cppm_config.get("cert_dir")
 NOTIFY = cppmauth.config.get("NOTIFY", {})
 pb_key = NOTIFY.get("api_key")
 
+
 # certificate expiry looks like 'Apr 04, 2025 14:04:11 CDT'
 # but pendulum format specifier for timezone (zz) doesn't like some of the values "CDT, EDT..."
 # are not valid.  Below is used to get around this swapping for valid values from tz database
-TZ_NAMES = {
-    "EDT": "EST5EDT",
-    "CDT": "CST6CDT",
-    "MDT": "MST7MDT",
-    "PDT": "PST8PDT"
-}
+def get_timezone_from_abbr(abbr):
+    """Convert timezone abbreviation to a valid pytz timezone string."""
+    now = datetime.datetime.now()
+    for tz in pytz.all_timezones:
+        timezone = pytz.timezone(tz)
+        try:
+            if now.astimezone(timezone).tzname() == abbr:
+                return tz
+        except Exception:
+            continue
+    return abbr  # Fallback to the original, pendulum might be able to handle it, who knows?
+
 
 class CpHandler(BaseHTTPRequestHandler):
-
     def do_GET(self):
         self.send_response(200)
         self.send_header("Content-Type", "application/x-pkcs12")
@@ -73,7 +81,6 @@ def get_system_ip() -> str:
 
 def load_pb():
     if pb_key:
-
         try:
             from common.notify import Push
         except ImportError:
@@ -105,6 +112,7 @@ def get_le_cert_from_external(webserver_full_url: str):
         log.exception(e)
         sys.exit(1)
 
+
 def verify_cert(this_is_server: bool = True, webserver_full_url: str = None):
     p = Path(PurePath(cert_dir or Path().home(), cert_p12))
     if p.exists():
@@ -115,12 +123,7 @@ def verify_cert(this_is_server: bool = True, webserver_full_url: str = None):
         log.fatal(f"{p.name} Not Found")
         sys.exit(1)
 
-
-    le_p12 = pkcs12.load_key_and_certificates(
-        pb,
-        cert_passphrase.encode("UTF-8"),
-        backend=default_backend()
-        )
+    le_p12 = pkcs12.load_key_and_certificates(pb, cert_passphrase.encode("UTF-8"), backend=default_backend())
     le_cert = le_p12[1]
     le_exp = le_cert.not_valid_after_utc
 
@@ -132,7 +135,7 @@ def get_server_ids(clearpass_fqdn: str, token_type: str, access_token: str) -> l
 
     url = "https://" + clearpass_fqdn + "/api/cluster/server"
 
-    headers = {'Content-Type': 'application/json', "Authorization": "{} {}".format(token_type, access_token)}
+    headers = {"Content-Type": "application/json", "Authorization": "{} {}".format(token_type, access_token)}
 
     try:
         r = requests.get(url, headers=headers)
@@ -141,7 +144,7 @@ def get_server_ids(clearpass_fqdn: str, token_type: str, access_token: str) -> l
         log.error(f"exception: {e}")
         exit(1)
 
-    return {svr.get("fqdn") or svr.get("name"): svr.get("server_uuid") for svr in r.json().get('_embedded', {}).get('items', {})}
+    return {svr.get("fqdn") or svr.get("name"): svr.get("server_uuid") for svr in r.json().get("_embedded", {}).get("items", {})}
 
 
 def start_webserver(port: int = 8080):
@@ -176,11 +179,11 @@ def put_https_cert(
     urls = [(svr, f"https://{cppm_fqdn}/api/server-cert/name/{uuid}/{svc}") for svr, uuid in servers.items()]
 
     payload = {
-            "pkcs12_file_url": webserver_url,
-            "pkcs12_passphrase": cert_passphrase
-            }
+        "pkcs12_file_url": webserver_url,
+        "pkcs12_passphrase": cert_passphrase,
+    }
 
-    headers = {'Content-Type': 'application/json', "Authorization": f"{token_type} {access_token}"}
+    headers = {"Content-Type": "application/json", "Authorization": f"{token_type} {access_token}"}
 
     _res = []
     for url in urls:
@@ -190,8 +193,8 @@ def put_https_cert(
                 rdict = r.json()
                 this_exp = rdict.get("expiry_date")  # looks like 'Apr 04, 2025 14:04:11 CDT'
                 tzstr = " ".join(this_exp.split()[-1:])  # zz format specifier doesn't work so need to split tz out.  See https://github.com/python-pendulum/pendulum/issues/279
-                tzstr = TZ_NAMES.get(tzstr, tzstr)
-                this_exp = pendulum.from_format(" ".join(this_exp.split()[0:-1]), 'MMM DD, YYYY HH:mm:ss', tz=tzstr)
+                tzstr = get_timezone_from_abbr(tzstr)
+                this_exp = pendulum.from_format(" ".join(this_exp.split()[0:-1]), "MMM DD, YYYY HH:mm:ss", tz=tzstr)
                 this_exp = this_exp.in_timezone("UTC")  # covert to UTC to match tz of le_exp
                 diff = le_exp - this_exp
                 is_self_signed = True if rdict.get("subject", "subject") == rdict.get("issued_by", "") else False
@@ -221,12 +224,13 @@ def put_https_cert(
 
     return _res
 
+
 def get_server_version(clearpass_fqdn: str, token_type: str, access_token: str) -> list:
     """Get server version"""
 
     url = "https://" + clearpass_fqdn + "/api/server/version"
 
-    headers = {'Content-Type': 'application/json', "Authorization": "{} {}".format(token_type, access_token)}
+    headers = {"Content-Type": "application/json", "Authorization": "{} {}".format(token_type, access_token)}
 
     try:
         r = requests.get(url, headers=headers)
@@ -243,12 +247,14 @@ def get_server_version(clearpass_fqdn: str, token_type: str, access_token: str) 
         exit(1)
 
 
-def get_webserver_url() -> Tuple[str, bool]:
+def get_webserver_url() -> Tuple[str, bool, int]:
     my_ip = get_system_ip()
     webserver_config = cppm_config.get("webserver", {})
     webserver_base = webserver_config.get("base_url")
     webserver_port = webserver_config.get("port", 8080)
     webserver_path = webserver_config.get("path", "")
+
+    webserver_port = int(webserver_port)
 
     if not webserver_base:
         port_str = ""
@@ -268,7 +274,7 @@ def get_webserver_url() -> Tuple[str, bool]:
     else:
         this_is_server = False
 
-    return full_url, this_is_server
+    return full_url, this_is_server, webserver_port
 
 
 if __name__ == "__main__":
@@ -282,17 +288,16 @@ if __name__ == "__main__":
 
     # determine if this system is the webserver.
     # TODO refactor always start the webserver and make webserver_disable: true a config option for test
-    webserver_full_url, this_is_server = get_webserver_url()
+    webserver_full_url, this_is_server, webserver_port = get_webserver_url()
 
     # Start webserver to provide certs to CPPM
     if this_is_server:
-        httpd = start_webserver()
+        httpd = start_webserver(port=webserver_port)
     else:
         c.print(f"[dark_orange]:warning:[/] webserver [cyan]{webserver_full_url}[/] defined in config does not appear to be this system.")
         c.print("skipping web_server startup.")
 
     le_exp = verify_cert(this_is_server, webserver_full_url=str(webserver_full_url))
-
 
     # get server version
     cppm_ver = get_server_version(*cppm_args)

@@ -39,6 +39,11 @@ typer = ">=0.6"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.ruff]
+cache-dir = "~/.cache/ruff"
+target-version = "py312"
+line-length = 300 # Setting high to not reformat existing code
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = [
