@@ -46,7 +46,7 @@ def get_timezone_from_abbr(abbr):
         # Using the timezone object, get the name of the timezone from datetime
         tz_name = now.astimezone(timezone).tzname()
         if tz_name == abbr:
-            return timezone
+            return timezone # Pendulum can handle a pytz timezone object, or a string
 
     return abbr  # Fallback to the original, pendulum might be able to handle it, who knows?
 
