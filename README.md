@@ -139,7 +139,8 @@ ssh -t wade@omv "clearpass-api-scripts/venv/bin/python3 clearpass-api-scripts/cp
 You can see from the comments in the script above how the flow works.
 
 > One key note, to ssh from pfSense to my NAS.  Certificate Authentication is in use, so no password has to be sent, which allows the remote command to run from this script without prompt.
-The PushBullet Notification is redundant in the case of ClearPass, but I have other certificates that also use this same script.  That piece is obviously optional.
+
+>The PushBullet Notification is redundant in the case of ClearPass, but I have other certificates that also use this same script.  That piece is obviously optional.
 
 You can also run this script manually: `./cppm-certsync.py`
 
