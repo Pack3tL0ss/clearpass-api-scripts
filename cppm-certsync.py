@@ -41,13 +41,13 @@ pb_key = NOTIFY.get("api_key")
 def get_timezone_from_abbr(abbr):
     """Convert timezone abbreviation to a valid pytz timezone string."""
     now = datetime.datetime.now()
-    for tz in pytz.all_timezones:
-        timezone = pytz.timezone(tz)
-        try:
-            if now.astimezone(timezone).tzname() == abbr:
-                return tz
-        except Exception:
-            continue
+    for tz in pytz.all_timezones: # Iterate through all timzones list[str]
+        timezone = pytz.timezone(tz) # Create a timezone object
+        # Using the timezone object, get the name of the timezone from datetime
+        tz_name = now.astimezone(timezone).tzname()
+        if tz_name == abbr:
+            return timezone
+
     return abbr  # Fallback to the original, pendulum might be able to handle it, who knows?
 
 
