@@ -44,6 +44,10 @@ cache-dir = "~/.cache/ruff"
 target-version = "py312"
 line-length = 300 # Setting high to not reformat existing code
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = [
