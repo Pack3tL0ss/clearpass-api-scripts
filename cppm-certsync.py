@@ -29,6 +29,8 @@ cert_p12 = cppm_config.get("https_cert_p12")
 cert_passphrase = cppm_config.get("https_cert_passphrase")
 cert_dir = cppm_config.get("cert_dir")
 
+webserver_enable = cppm_config.get("webserver_enable", True)
+
 NOTIFY = cppmauth.config.get("NOTIFY", {})
 pb_key = NOTIFY.get("api_key")
 
@@ -105,15 +107,15 @@ def get_le_cert_from_external(webserver_full_url: str):
         log.exception(e)
         sys.exit(1)
 
-def verify_cert(this_is_server: bool = True, webserver_full_url: str = None):
+def verify_cert(webserver_full_url: str = None):
     p = Path(PurePath(cert_dir or Path().home(), cert_p12))
     if p.exists():
         pb = p.read_bytes()
-    elif not this_is_server:
-        pb = get_le_cert_from_external(webserver_full_url)
     else:
-        log.fatal(f"{p.name} Not Found")
-        sys.exit(1)
+        pb = get_le_cert_from_external(webserver_full_url)
+        if not pb:
+            log.fatal(f"{p.name} Not Found")
+            sys.exit(1)
 
 
     le_p12 = pkcs12.load_key_and_certificates(
@@ -244,8 +246,7 @@ def get_server_version(clearpass_fqdn: str, token_type: str, access_token: str) 
         exit(1)
 
 
-def get_webserver_url() -> Tuple[str, bool]:
-    my_ip = get_system_ip()
+def get_webserver_url() -> str:
     webserver_config = cppm_config.get("webserver", {})
     webserver_base = webserver_config.get("base_url")
     webserver_port = webserver_config.get("port", 8080)
@@ -260,16 +261,12 @@ def get_webserver_url() -> Tuple[str, bool]:
             if "443" in str(webserver_port):
                 proto = "https"
 
+        my_ip = get_system_ip()
         full_url = URL(f"{proto}://{my_ip}{port_str}{path_str}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}"))
     else:
         full_url = URL(f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}"))
 
-    if socket.gethostbyname(full_url.host) in ["127.0.0.1", "::1", my_ip]:
-        this_is_server = True
-    else:
-        this_is_server = False
-
-    return full_url, this_is_server
+    return full_url
 
 
 if __name__ == "__main__":
@@ -281,18 +278,14 @@ if __name__ == "__main__":
     # get server uuids from publisher
     cluster_servers = get_server_ids(*cppm_args)
 
-    # determine if this system is the webserver.
-    # TODO refactor always start the webserver and make webserver_disable: true a config option for test
-    webserver_full_url, this_is_server = get_webserver_url()
+    # determine the full URL for the p12 file
+    webserver_full_url = get_webserver_url()
 
-    # Start webserver to provide certs to CPPM
-    if this_is_server:
+    # Start webserver to provide certs to CPPM, if required
+    if webserver_enable:
         httpd = start_webserver()
-    else:
-        c.print(f"[dark_orange]:warning:[/] webserver [cyan]{webserver_full_url}[/] defined in config does not appear to be this system.")
-        c.print("skipping web_server startup.")
 
-    le_exp = verify_cert(this_is_server, webserver_full_url=str(webserver_full_url))
+    le_exp = verify_cert(webserver_full_url=str(webserver_full_url))
 
 
     # get server version

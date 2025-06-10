@@ -14,6 +14,7 @@ CPPM:
   https_cert_p12: cppm.arubalab.net.p12  # used as final portion of webserver full url, and as last part of local cert path
   https_cert_passphrase: reD@cted!!
   #svc: "HTTPS(RSA)"  # the ClearPass service: "RADIUS", "HTTPS(ECC)", "HTTPS(RSA)", "RadSec", "Database"
+  webserver_enable: true  # set to false to use an existing web server
   webserver:
     base_url: http://omv.arubalab.net  # ip or fqdn cppm would use to access server hosting the cert (this system or external)
     port: 8080
