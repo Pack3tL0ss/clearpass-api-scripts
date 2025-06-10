@@ -172,7 +172,8 @@ def put_https_cert(
 ) -> list:
     """Update https Certificate to CPPM"""
 
-    svc = "HTTPS" if int(server_version[1]) < 10 else "HTTPS(RSA)"
+    https_svc = "HTTPS" if int(server_version[1]) < 10 else "HTTPS(RSA)"
+    svc = cppm_config.get("svc", https_svc)
     urls = [(svr, f"https://{cppm_fqdn}/api/server-cert/name/{uuid}/{svc}") for svr, uuid in servers.items()]
 
     payload = {
