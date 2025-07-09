@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2025-9.2
+# Version: 2025-9.3
 #
 
 import datetime
@@ -16,7 +16,7 @@ from typing import Tuple
 from rich.console import Console
 from yarl import URL
 
-import pytz
+import zoneinfo
 import requests
 import netifaces
 from cryptography.hazmat.backends import default_backend
@@ -38,15 +38,15 @@ pb_key = NOTIFY.get("api_key")
 # certificate expiry looks like 'Apr 04, 2025 14:04:11 CDT'
 # but pendulum format specifier for timezone (zz) doesn't like some of the values "CDT, EDT..."
 # are not valid.  Below is used to get around this swapping for valid values from tz database
-def get_timezone_from_abbr(abbr):
-    """Convert timezone abbreviation to a valid pytz timezone string."""
+def get_timezone_from_abbr(abbr) ->zoneinfo.ZoneInfo | str:
+    """Convert timezone abbreviation to a valid ZoneInfo timezone string."""
     now = datetime.datetime.now()
-    for tz in pytz.all_timezones: # Iterate through all timzones list[str]
-        timezone = pytz.timezone(tz) # Create a timezone object
+    for tz in zoneinfo.available_timezones():
+        timezone = zoneinfo.ZoneInfo(key=tz)
         # Using the timezone object, get the name of the timezone from datetime
         tz_name = now.astimezone(timezone).tzname()
         if tz_name == abbr:
-            return timezone # Pendulum can handle a pytz timezone object, or a string
+            return timezone # Pendulum can handle a ZoneInfo timezone object, or a string
 
     return abbr  # Fallback to the original, pendulum might be able to handle it, who knows?
 
