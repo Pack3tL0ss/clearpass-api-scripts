@@ -165,7 +165,8 @@ def get_server_ids(clearpass_fqdn: str, token_type: str, access_token: str) -> l
         log.error(f"exception: {e}")
         exit(1)
 
-    return {svr.get("fqdn") or svr.get("name"): svr.get("server_uuid") for svr in r.json().get("_embedded", {}).get("items", {})}
+    servers = r.json().get("_embedded", {}).get("items", {})
+    return {svr.get("name"): svr.get("server_uuid") for svr in servers}
 
 
 def start_webserver(port: int = 8080):
@@ -243,7 +244,7 @@ def put_https_cert(
                         _msg = "\n".join([f"\t{k}: {v}" for k, v in r.json().items() if v])
                         log.error(f"PUT:ERROR:{url[0]}\n{_msg}")
                 else:
-                    _msg = f"LE cert has same expiration as {url[0]} https cert No Update performed"
+                    _msg = f"LE cert has same expiration as {url[0]} {svc} cert No Update performed"
                     _res.append((url[0], "same"))
                     log.info(_msg)
             else:
