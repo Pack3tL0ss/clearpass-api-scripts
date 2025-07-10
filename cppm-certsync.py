@@ -7,22 +7,21 @@
 from __future__ import annotations
 
 import datetime
-import pendulum
-import sys
 import socket
+import sys
 import threading
+import zoneinfo
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path, PurePath
-from typing import Tuple
-from rich.console import Console
-from yarl import URL
+from typing import Any, Dict, Tuple
 
-import zoneinfo
-import requests
 import netifaces
+import pendulum
+import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import pkcs12
-from typing import Dict, Any
+from rich.console import Console
+from yarl import URL
 
 from common import cppmauth, log
 
