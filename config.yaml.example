@@ -6,7 +6,7 @@
 # -- webserver: port: 8080
 # -- username: nul (must provide value if grant_type: password)
 # -- password: nul (must provide value if grant_type: password)
-# -- FQDN can be VIP all servers in cluster with hostname in SAN will get cert
+# -- FQDN can be VIP all servers in cluster will be sent cert
 CPPM:
   fqdn: cppm.arubalab.net
   client_id: Full API Client
