@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2025-9.3
+# Version: 2025-9.4
 #
 from __future__ import annotations
 
