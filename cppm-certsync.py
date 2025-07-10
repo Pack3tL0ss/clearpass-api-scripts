@@ -309,7 +309,7 @@ if __name__ == "__main__":
     else:
         if cppm_config.get("webserver", {}).get("local") is None:
             c.print(f"[dark_orange]:warning:[/] webserver [cyan]{webserver_full_url}[/] defined in config does not appear to be this system.")
-        c.print("skipping web_server startup.")
+        c.print("skipping web_server startup, based on config.")
 
     le_exp = verify_cert(this_is_server, webserver_full_url=str(webserver_full_url))
 
