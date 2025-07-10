@@ -12,6 +12,7 @@ import sys
 import threading
 import zoneinfo
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from os import environ as env
 from pathlib import Path, PurePath
 from typing import Any, Dict, Tuple
 
@@ -196,6 +197,17 @@ def put_https_cert(
     """Update https Certificate to CPPM"""
 
     svc = "HTTPS" if int(server_version[1]) < 10 else "HTTPS(RSA)"
+    if "--usage" in sys.argv:
+        try:
+            override_svc = sys.argv[sys.argv.index("--usage") + 1]
+        except IndexError:
+            econsole = Console(stderr=True)
+            econsole.print("[red]Error[/]:  Missing argument after [cyan]--usage[/] :triangular_flag:")
+            sys.exit(1)
+    else:
+        override_svc = cppm_config.get("cert_usage") or env.get("CPPM_CERT_USAGE")
+
+    svc = override_svc or svc
     urls = [(svr, f"https://{cppm_fqdn}/api/server-cert/name/{uuid}/{svc}") for svr, uuid in servers.items()]
 
     payload = {
