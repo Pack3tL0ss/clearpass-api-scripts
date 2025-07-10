@@ -17,6 +17,9 @@ CPPM:
     base_url: http://omv.arubalab.net  # ip or fqdn cppm would use to access server hosting the cert (this system or external)
     port: 8080
     path: "certs"
+    local: false  # if not provided the script will attempt to determine if this is the server hosting the cert files.
+                  # setting local will bypass the check.  local: true will result in webserver being started on this system
+                  # to serve certificates to cppm.  If set to false the server at base_url should be providing the webserver.
   # The above will result in "http://omv.arubalab.net:8080/certs/cppm.arubalab.net.p12" being used as the full path where CPPM can get the cert
   cert_dir: "/export/FileDump/certificates/LetsEncrypt"
 

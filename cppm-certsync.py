@@ -4,6 +4,7 @@
 #
 # Version: 2025-9.3
 #
+from __future__ import annotations
 
 import datetime
 import pendulum
@@ -21,17 +22,18 @@ import requests
 import netifaces
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import pkcs12
+from typing import Dict, Any
 
 from common import cppmauth, log
 
-cppm_config = cppmauth.config.get("CPPM", {})
+cppm_config: Dict[str, Any] = cppmauth.config.get("CPPM", {})
 
 cppm_args = (cppmauth.clearpass_fqdn, cppmauth.token_type, cppmauth.access_token)
 cert_p12 = cppm_config.get("https_cert_p12")
 cert_passphrase = cppm_config.get("https_cert_passphrase")
 cert_dir = cppm_config.get("cert_dir")
 
-NOTIFY = cppmauth.config.get("NOTIFY", {})
+NOTIFY: Dict[str, str] = cppmauth.config.get("NOTIFY", {})
 pb_key = NOTIFY.get("api_key")
 
 
@@ -52,6 +54,9 @@ def get_timezone_from_abbr(abbr) ->zoneinfo.ZoneInfo | str:
 
 
 class CpHandler(BaseHTTPRequestHandler):
+    CERTNAME: str = None
+    passphrase: str = None
+
     def do_GET(self):
         self.send_response(200)
         self.send_header("Content-Type", "application/x-pkcs12")
@@ -62,8 +67,9 @@ class CpHandler(BaseHTTPRequestHandler):
         return
 
 
-def get_system_ip() -> str:
-    try:
+def _get_system_ip() -> str:
+    pub_ip = None
+    try:  # determine which IP is associated with the default gateway
         gw = netifaces.gateways()
         pub_iface = gw["default"][netifaces.AF_INET][1]
         pub_iface_addr = netifaces.ifaddresses(pub_iface)
@@ -72,12 +78,24 @@ def get_system_ip() -> str:
         log.exception(f"Exception in get_system_ip(): {e}")
         c = Console()
         c.print(f"[bright_red]!![/]::warning:: Error Attempting to determine external IP: {e.__class__.__name__}")
-        c.print("You can manually specify the webserver in the config [cyan]webserver: <ip address of fqdn>[/]")
-        c.print("exiting...")
-        sys.exit(1)
+        c.print("You can set webserver: local: to True or False to bypass this check.")
 
     return pub_ip
 
+def _this_is_server(full_url: URL) -> bool:
+    config_is_local = cppm_config.get("webserver", {}).get("local")
+    if isinstance(config_is_local, bool):
+        return config_is_local
+
+    my_ip = _get_system_ip()
+
+    try:
+        if my_ip and socket.gethostbyname(full_url.host) not in ["127.0.0.1", "::1", my_ip]:
+            return False
+    except Exception as e:
+        log.exception(f"{e.__class__.__name__} Exception in this_is_server()\n{e}")
+
+    return True
 
 def load_pb():
     if pb_key:
@@ -92,8 +110,11 @@ def load_pb():
 
 
 def verify_config():
-    if None in [cert_p12, cert_passphrase, cppm_config.get("webserver", {}).get("base_url")]:
-        log.fatal("config is missing a required variable, please see the example config")
+    values = [cert_p12, cert_passphrase, cppm_config.get("webserver", {}).get("base_url")]
+    keys = ["https_cert_p12", "https_cert_passphrase", "webserver:base_url"]
+    if None in values:
+        missing = [k for k, v in zip(keys, values) if v is None]
+        log.fatal(f"config is missing a required fields ({', '.join(missing)}), please see the example config")
         exit(1)
     elif NOTIFY and pb_key and not NOTIFY.get("service"):
         log.info("No 'service' specified for notifications, assuming PushBullet")
@@ -247,34 +268,17 @@ def get_server_version(clearpass_fqdn: str, token_type: str, access_token: str) 
         exit(1)
 
 
-def get_webserver_url() -> Tuple[str, bool, int]:
-    my_ip = get_system_ip()
+def get_webserver_info() -> Tuple[URL, int]:
     webserver_config = cppm_config.get("webserver", {})
     webserver_base = webserver_config.get("base_url")
     webserver_port = webserver_config.get("port", 8080)
     webserver_path = webserver_config.get("path", "")
 
     webserver_port = int(webserver_port)
+    port_str = "" if not webserver_port else f":{webserver_port}"
+    full_url = URL(f"{webserver_base}{port_str}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}"))
 
-    if not webserver_base:
-        port_str = ""
-        proto = "http"
-        path_str = "" if not webserver_path else f"/{webserver_path}"
-        if webserver_port:
-            port_str = f":{webserver_port}"
-            if "443" in str(webserver_port):
-                proto = "https"
-
-        full_url = URL(f"{proto}://{my_ip}{port_str}{path_str}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}"))
-    else:
-        full_url = URL(f"{webserver_base}:{webserver_port}/{webserver_path}/{cert_p12}".replace(f"//{cert_p12}", f"/{cert_p12}"))
-
-    if socket.gethostbyname(full_url.host) in ["127.0.0.1", "::1", my_ip]:
-        this_is_server = True
-    else:
-        this_is_server = False
-
-    return full_url, this_is_server, webserver_port
+    return full_url, webserver_port
 
 
 if __name__ == "__main__":
@@ -286,15 +290,25 @@ if __name__ == "__main__":
     # get server uuids from publisher
     cluster_servers = get_server_ids(*cppm_args)
 
-    # determine if this system is the webserver.
-    # TODO refactor always start the webserver and make webserver_disable: true a config option for test
-    webserver_full_url, this_is_server, webserver_port = get_webserver_url()
+    webserver_full_url, webserver_port = get_webserver_info()
+    this_is_server = _this_is_server(webserver_full_url)
 
     # Start webserver to provide certs to CPPM
     if this_is_server:
         httpd = start_webserver(port=webserver_port)
+        if "--serve-only" in sys.argv:
+            try:
+                c.print(":information:  webserver only mode.  CTRL-C to stop webserver")
+                while True:
+                    import time
+                    time.sleep(3)
+            except KeyboardInterrupt:
+                log.info("Stopping WebServer")
+                httpd.shutdown()
+                sys.exit(0)
     else:
-        c.print(f"[dark_orange]:warning:[/] webserver [cyan]{webserver_full_url}[/] defined in config does not appear to be this system.")
+        if cppm_config.get("webserver", {}).get("local") is None:
+            c.print(f"[dark_orange]:warning:[/] webserver [cyan]{webserver_full_url}[/] defined in config does not appear to be this system.")
         c.print("skipping web_server startup.")
 
     le_exp = verify_cert(this_is_server, webserver_full_url=str(webserver_full_url))
