@@ -6,6 +6,7 @@ from typing import Any
 from rich import print
 import sys
 import yaml
+from typing import Dict
 
 
 class Config:
@@ -16,21 +17,24 @@ class Config:
             self.outdir = self.cwd / "out"
         else:
             self.outdir = self.cwd
-        file = self.base_dir / 'config.yaml'
-        if not file.exists():
-            print(f":warning:  Config file {file} not found.")
+        self.file = self.base_dir / 'config.yaml'
+        if not self.file.exists():
+            print(f":warning:  Config file {self.file} not found.")
+            config = {}
         else:
             self.dir = self.base_dir
             self.cache_dir = self.dir / ".cache"
             self.cache_dir.mkdir(exist_ok=True)
-        config = self.get_yaml_file(file) or {}
-        self.config = config if "CPPM" not in config else config["CPPM"]
+            config = self.get_yaml_file(self.file) or {}
+
+        self.config: Dict[str, str | Dict[str, str]] = config.get("CPPM") or config.get("cppm", {})
         self.debug = self.config.get("debug", False)
         self.debugv = self.config.get("debugv", False)
-        self.server = self.config.get("server", self.config.get("fqdn"))
+        self.fqdn = self.config.get("fqdn")
         self.client_id = self.config.get("client_id")
         self.client_secret = self.config.get("client_secret")
         self.verify_ssl = self.config.get("verify_ssl", False)
+        self.grant_type = self.config.get("grant_type", "client_credentials")
         self.username = self.config.get("username")
         self.password = self.config.get("password")
         self.sanitize = False
@@ -38,12 +42,12 @@ class Config:
         self.last_command_file = self.cache_dir / "last_command"
         if not self.ok:
             _missing = '[bright_red italic]Missing[/]'
-            print(f":warning:  Invalid Configuration, [cyan]fqdn[/]: {f'[bright_green]{self.server}[/]' if self.server else _missing}, [cyan]client_id[/]: {f'[bright_green]{self.client_id}[/]' if self.client_id else _missing} and [cyan]client_secret[/]: {'[bright_green]*****[/]' if self.client_secret else _missing} are all required")
+            print(f":warning:  Invalid Configuration, [cyan]fqdn[/]: {f'[bright_green]{self.fqdn}[/]' if self.fqdn else _missing}, [cyan]client_id[/]: {f'[bright_green]{self.client_id}[/]' if self.client_id else _missing} and [cyan]client_secret[/]: {'[bright_green]*****[/]' if self.client_secret else _missing} are all required")
             sys.exit(1)
 
     @property
     def ok(self):
-        return not any([s is None for s in [self.server, self.client_id, self.client_secret]])
+        return not any([s is None for s in [self.fqdn, self.client_id, self.client_secret]])
 
     def __bool__(self):
         return len(self.config) > 0
