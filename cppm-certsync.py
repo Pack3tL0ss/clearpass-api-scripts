@@ -264,7 +264,7 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]]:
                 else:
                     words = ('same', 'as') if diff.days == 0 else ('older', 'than')
                     _msg = f"New cert has {words[0]} expiration {words[1]} {req.name} {req.svc} cert. No Update performed."
-                    _res.append((req.name, req.svc, "word"))
+                    _res.append((req.name, req.svc, words[0]))
                     log.info(_msg)
             else:
                 _res.append((req.name, req.svc, "error"))
@@ -321,7 +321,7 @@ def do_push(res):
     if "no-push" not in str(sys.argv):
         push = _load_pb()
         try:
-            if push and [r[2] for r in res if r[2] != "same"]:
+            if push and [r[2] for r in res if r[2] not in ["same", "older"]]:
                 res_str = "\n".join([f"{svr} ({svc}): {result}" for svr, svc, result in res])
                 push_res = push("ClearPass Cert Update", res_str)
                 log.debug(f"Push Response:\n{push_res}")
