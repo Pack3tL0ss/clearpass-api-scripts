@@ -219,8 +219,8 @@ class CLICommon:
                             if d[sort_by] is not None:
                                 type_ = type(d[sort_by])
                                 break
-                        data = sorted(data, key=lambda d: d[sort_by] if d[sort_by] != "-" else 0 or 0 if type_ == int else "")
-                        # data = sorted(data, key=get_sort(d[sort_by], type_=type_))
+                        data = sorted(data, key=lambda d: d[sort_by] if d[sort_by] != "-" else 0 or 0 if type_ is int else "")
+
                     except TypeError as e:
                         print(
                             f":x: [dark_orange3]Warning:[reset] Unable to sort by [cyan]{sort_by}.\n   {e.__class__.__name__}: {e} "
@@ -251,17 +251,6 @@ class CLICommon:
                 )
 
             typer.echo_via_pager(outdata) if pager and tty and len(outdata) > tty.rows else typer.echo(outdata)
-
-            # TODO test speed of use normal console object.
-            # rich pager may render faster, but need to modify render.output .. rich_output
-            # if pager and tty and len(outdata) > tty.rows:
-            #     with console.pager():
-            #         console.print(outdata)
-            # else:
-            #     console.print(outdata)
-
-            if "Limit:" not in outdata and caption is not None and cleaner and cleaner.__name__ != "parse_caas_response":
-                print(caption)
 
             if outfile and outdata:
                 self.write_file(outfile, outdata.file)
