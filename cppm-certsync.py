@@ -29,8 +29,10 @@ from common.cppmauth import ClearPassAuth
 if TYPE_CHECKING:
     from common.config import Certificate
 
+from rich.traceback import install
+install(show_locals=True)
 
-UpdateRes = Literal["updated", "same", "error"]
+UpdateRes = Literal["updated", "same", "older", "error"]
 Service = Literal["HTTPS", "HTTPS(RSA)", "RADIUS", "RadSec"]
 
 
@@ -98,13 +100,13 @@ def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL 
         pb = get_le_cert_from_external(full_url)
         log.debug(get_le_cert_from_external.cache_info())
     else:
-        local_paths: List[Path] = [cppm.webserver.web_root or Path().home() / cert_p12, Path().cwd() / cert_p12]
+        local_paths: List[Path] = [(cppm.webserver.web_root or Path().home()) / cert_p12, Path().cwd() / cert_p12]
         for p in local_paths:
             if p.exists():
                 pb = p.read_bytes()
                 break
         if not pb:
-            log.fatal(f"{cert_p12} Not Found")
+            log.fatal(f"{cppm.webserver.web_root / cert_p12} Not Found")
             exit(1)
 
     try:
@@ -151,7 +153,7 @@ def start_webserver(port: int = None) -> HTTPServer | None:
         else:
             log.info(f"Starting WebServer on Port {port}")
             # handler = CpHandler
-            # handler.init(cert_p12=cert_p12, passphrase=cert_passphrase)
+            # CpHandler.init(cert_p12=cert_p12, passphrase=cert_passphrase)
             # handler.CERTNAME = cert_p12
             # handler.passphrase = cert_passphrase
             httpd = HTTPServer(("", port), CpHandler)
@@ -177,7 +179,7 @@ def start_webserver(port: int = None) -> HTTPServer | None:
         except (KeyboardInterrupt, EOFError):
             log.info("Stopping WebServer")
             httpd.shutdown()
-            sys.exit(0)
+            exit(0)
 
     return httpd
 
@@ -260,8 +262,9 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]]:
                         _msg = "\n".join([f"\t{k}: {v}" for k, v in r.json().items() if v])
                         log.error(f"PUT:ERROR:{req.name}\n{_msg}")
                 else:
-                    _msg = f"LE cert has same expiration as {req.name} {req.svc} cert No Update performed"
-                    _res.append((req.name, req.svc, "same"))
+                    words = ('same', 'as') if diff.days == 0 else ('older', 'than')
+                    _msg = f"New cert has {words[0]} expiration {words[1]} {req.name} {req.svc} cert. No Update performed."
+                    _res.append((req.name, req.svc, "word"))
                     log.info(_msg)
             else:
                 _res.append((req.name, req.svc, "error"))
