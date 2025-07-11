@@ -340,7 +340,7 @@ if __name__ == "__main__":
             econsole.print("[dark_orange3]:warning:[/]  Missing argument after [cyan]--port[/] :triangular_flag:")
             exit(1)
         except ValueError:
-            econsole.print(f"[dark_orange3]:warning:[/]  Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index["--port" + 1]]} should be a valid integer.")
+            econsole.print(f"[dark_orange3]:warning:[/]  Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index['--port' + 1]]} should be a valid integer.")
             exit(1)
 
     httpd = start_webserver(port)
