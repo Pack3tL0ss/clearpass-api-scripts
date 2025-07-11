@@ -58,21 +58,11 @@ def _get_timezone_from_abbr(abbr) ->zoneinfo.ZoneInfo | str:
 
 
 class CpHandler(BaseHTTPRequestHandler):
-    passphrase: str = None
-    # CERTNAME: str = None
-    cert_p12: str = None
-
-    @classmethod
-    def init(cls, cert_p12: str, passphrase: str) -> None:
-        cls.cert_p12 = cert_p12
-        cls.passphrase = passphrase
-
     def do_GET(self):
-        install(show_locals=True)  # better Traceback hook
         self.send_response(200)
         self.send_header("Content-Type", "application/x-pkcs12")
         self.end_headers()
-        p = cppm.webserver.web_root / self.cert_p12
+        p = cppm.webserver.web_root / self.path.split("/")[-1]
         self.wfile.write(p.read_bytes())
         log.info(f"Sending {p.name}")
         return
@@ -153,10 +143,6 @@ def start_webserver(port: int = None) -> HTTPServer | None:
             log.warning(f"Something Appears to be Using port {port}")
         else:
             log.info(f"Starting WebServer on Port {port}")
-            # handler = CpHandler
-            # CpHandler.init(cert_p12=cert_p12, passphrase=cert_passphrase)
-            # handler.CERTNAME = cert_p12
-            # handler.passphrase = cert_passphrase
             httpd = HTTPServer(("", port), CpHandler)
             httpd.allow_reuse_address = True
             threading.Thread(target=httpd.serve_forever, args=[2], name="webserver").start()
