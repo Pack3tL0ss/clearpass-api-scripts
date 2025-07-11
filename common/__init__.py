@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import logging
-from typing import Union
+from typing import List
 import urllib3
 import requests
-from .config import Config
+# from .config import Config
 from sys import argv
 from pathlib import Path
+from rich.console import Console
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # PROMPT = re.compile(r"([a-zA-Z0-9\-.\s]*#)")
+
+console = Console()
+econsole = Console(stderr=True)
 
 headers = {
     "Content-Type": "application/json",
@@ -82,8 +88,8 @@ class AosConnect(Response):
 
 
 class MyLogger:
-    def __init__(self, log_file: Union[str, Path], debug: bool = False, show: bool = False):
-        self.log_msgs = []
+    def __init__(self, log_file: str | Path, debug: bool = False, show: bool = False):
+        self.log_msgs: List[str] = []
         self.DEBUG = debug
         self.verbose = False
         if isinstance(log_file, Path):
@@ -104,57 +110,68 @@ class MyLogger:
                             datefmt=dateStr)
         return logging.getLogger(self.log_file.stem)
 
+    @staticmethod
+    def _remove_rich_markups(log_msg: str) -> str:
+        if "[/" not in log_msg:
+            return log_msg
+
+        console = Console(force_terminal=False)
+        with console.capture() as cap:
+            console.print(log_msg, end="")
+
+        return cap.get()
+
     def log_print(self, msgs, log=False, show=True, level='info', *args, **kwargs):
         msgs = [msgs] if not isinstance(msgs, list) else msgs
         _msgs = []
         _logged = []
+
         for i in msgs:
             i = str(i)
-            if log and i not in _logged:
-                getattr(self._log, level)(i)
-                _logged.append(i)
+            if i not in _logged:
+                if log:
+                    getattr(self._log, level)(self._remove_rich_markups(i), *args, **kwargs)
+                    _logged.append(i)
                 if i and i not in self.log_msgs:
                     _msgs.append(i)
 
-        if show:
+        if show is not False and True in [show, self.show]:
             self.log_msgs += _msgs
             for m in self.log_msgs:
-                print(m)
+                if console.is_terminal:
+                    _pfx = '' if not self.DEBUG else '\n'  # Add a CR before showing log when in debug due to spinners
+                    warning_emoji = "[dark_orange3]\u26a0[/]  "
+                    econsole.print(f"{_pfx}{warning_emoji if level not in ['info', 'debug'] else ''}{m}", emoji=":cd:" not in m.lower())  # avoid :cd: emoji common in mac addresses
+
             self.log_msgs = []
 
-    def show(self, msgs: Union[list, str], log: bool = False, show: bool = True, *args, **kwargs) -> None:
+    def show(self, msgs: list | str, log: bool = False, show: bool = True, *args, **kwargs) -> None:
         self.log_print(msgs, show=show, log=log, *args, **kwargs)
 
-    def debug(self, msgs: Union[list, str], log: bool = True, show: bool = False, *args, **kwargs) -> None:
+    def debug(self, msgs: list | str, log: bool = True, show: bool = False, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, level='debug', *args, **kwargs)
 
-    # -- more verbose debugging - primarily to get json dumps
-    def debugv(self, msgs: Union[list, str], log: bool = True, show: bool = False, *args, **kwargs) -> None:
+    # -- more verbose debugging
+    def debugv(self, msgs: list | str, log: bool = True, show: bool = False, *args, **kwargs) -> None:
         if self.DEBUG and self.verbose:
             self.log_print(msgs, log=log, show=show, level='debug', *args, **kwargs)
 
-    def info(self, msgs: Union[list, str], log: bool = True, show: bool = None, *args, **kwargs) -> None:
-        show = show or self.show
+    def info(self, msgs: list | str, log: bool = True, show: bool = None, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, *args, **kwargs)
 
-    def warning(self, msgs: Union[list, str], log: bool = True, show: bool = None, *args, **kwargs) -> None:
-        show = show or self.show
+    def warning(self, msgs: list | str, log: bool = True, show: bool = None, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, level='warning', *args, **kwargs)
 
-    def error(self, msgs: Union[list, str], log: bool = True, show: bool = None, *args, **kwargs) -> None:
-        show = show or self.show
+    def error(self, msgs: list | str, log: bool = True, show: bool = None, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, level='error', *args, **kwargs)
 
-    def exception(self, msgs: Union[list, str], log: bool = True, show: bool = None, *args, **kwargs) -> None:
-        show = show or self.show
+    def exception(self, msgs: list | str, log: bool = True, show: bool = None, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, level='exception', *args, **kwargs)
 
-    def critical(self, msgs: Union[list, str], log: bool = True, show: bool = None, *args, **kwargs) -> None:
-        show = show or self.show
+    def critical(self, msgs: list | str, log: bool = True, show: bool = None, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, level='critical', *args, **kwargs)
 
-    def fatal(self, msgs: Union[list, str], log: bool = True, show: bool = None, *args, **kwargs) -> None:
-        show = show or self.show
+    def fatal(self, msgs: list | str, log: bool = True, show: bool = None, *args, **kwargs) -> None:
         self.log_print(msgs, log=log, show=show, level='fatal', *args, **kwargs)
 
     def setLevel(self, level):
@@ -164,5 +181,5 @@ class MyLogger:
 _calling_script = Path(argv[0])
 log_file = _calling_script.joinpath(_calling_script.resolve().parent, "logs", f"{_calling_script.stem}.log")
 
-config = Config()
-log = MyLogger(log_file, debug=config.DEBUG, show=True)
+# config = Config()
+log = MyLogger(log_file, show=True)
