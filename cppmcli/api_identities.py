@@ -1,5 +1,8 @@
-from .response import Response, Session
+from __future__ import annotations
 
+from .response import Session
+
+from typing import Dict, Any
 from pyclearpass.common import (
     _generate_parameterised_url,
     _remove_empty_keys,
@@ -31,7 +34,7 @@ class ApiIdentities(Session):
         }
         return await self.get(url, params=params)
 
-    def new_api_client(self, body=({})):
+    def new_api_client(self, body=({})) -> ClearPassAPILogin:
         """
                 Operation: Create a new API client
                 HTTP Status Response Codes: 201 Created, 400 Client Error, 401 Unauthorized, 403 Forbidden, 406 Not Acceptable, 415 Unsupported Media Type, 422 Unprocessable Entity, 201 Created, 400 Client Error, 401 Unauthorized, 403 Forbidden, 406 Not Acceptable, 415 Unsupported Media Type, 422 Unprocessable Entity
@@ -67,7 +70,7 @@ class ApiIdentities(Session):
             self, url=url_path, method="post", query=body
         )
 
-    def get_api_client_by_client_id(self, client_id=""):
+    def get_api_client_by_client_id(self, client_id="") -> Dict[str, Any] | str:
         """
         Operation: Get an API client
         HTTP Status Response Codes: 200 OK, 401 Unauthorized, 403 Forbidden, 404 Not Found, 406 Not Acceptable, 415 Unsupported Media Type, 200 OK, 401 Unauthorized, 403 Forbidden, 404 Not Found, 406 Not Acceptable, 415 Unsupported Media Type
