@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from .response import Session
 
-from typing import Dict, Any
+from typing import Dict, Any, List, TypedDict
 from pyclearpass.common import (
     _generate_parameterised_url,
     _remove_empty_keys,
     ClearPassAPILogin,
 )
 
+class Devices(TypedDict):
+    _embedded: Dict[str, List[Dict[str, str | int | dict]]]
+    _links: Dict[str, Dict[str, str]]
 
 class ApiIdentities(Session):
 
@@ -248,7 +251,7 @@ class ApiIdentities(Session):
         Required Path Parameter Name: user_id, Description: User ID of the deny listed user
         Required Path Parameter Name: mac_address, Description: MAC address of the deny listed user
         """
-        url_path = "/deny-listed-users/user_id/{user_id}/mac_address/{mac_address}"
+        url_path = f"/deny-listed-users/user_id/{user_id}/mac_address/{mac_address}"
         dict_path = {"user_id": user_id, "mac_address": mac_address}
         for item in dict_path:
             url_path = url_path.replace("{" + item + "}", dict_path[item])
@@ -257,7 +260,7 @@ class ApiIdentities(Session):
     # Function Section Name:Device
     # Function Section Description: Manage device accounts
 
-    def get_device(self, filter="", sort="", offset="", limit="", calculate_count=""):
+    def get_devices(self, filter="", sort="", offset="", limit="", calculate_count="") -> Devices | str:
         """
         Operation: Get a list of device accounts
         HTTP Status Response Codes: 200 OK, 401 Unauthorized, 403 Forbidden, 406 Not Acceptable, 415 Unsupported Media Type, 422 Unprocessable Entity, 200 OK, 401 Unauthorized, 403 Forbidden, 406 Not Acceptable, 415 Unsupported Media Type, 422 Unprocessable Entity
