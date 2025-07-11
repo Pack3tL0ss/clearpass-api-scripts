@@ -3,8 +3,8 @@
 - [ClearPass API Scripts](#clearpass-api-scripts)
   - [Setup](#setup)
   - [Current Tools](#current-tools)
-  - [Certificate Sync](#certificate-sync)
-  - [xml-import-builder](#xml-import-builder)
+    - [Certificate Sync](#certificate-sync)
+    - [xml-import-builder](#xml-import-builder)
 
 > Development is generally done in Ubuntu, scripts should work on other environments, but not necessarily tested.
 
@@ -12,16 +12,16 @@
 
 A collection (of 2 currently) of Aruba ClearPass API Scripts
 
-Visit [the official Aruba GitHub](https://github.com/aruba/) for additional tools from the Aruba Automation Team.
+🎉 Visit [the official Aruba GitHub](https://github.com/aruba/) for additional tools from the Aruba Automation Team.
 
 ------
 
 ## Setup
 
-Clone The Repo
+### Clone The Repo
 `git clone https://github.com/Pack3tL0ss/cppm-api-scripts.git`
 
-Setup the Virtual Environment
+### Setup the Virtual Environment
 
 ```bash
 export DEB_PYTHON_INSTALL_LAYOUT='deb'  # on POSIX / *NIX based system
@@ -52,11 +52,8 @@ These scripts interact with the ClearPass API, so an API client needs to be conf
 
 >The `in`, `out`, and `log` directories are ignored by git.  The scripts will look for any input files in the `in` directory, will send any generated reports/output to `out` and will log to the `log` directory.
 
-------
 
 ## Current Tools
-
-------
 
 ### Certificate Sync
 
@@ -70,7 +67,7 @@ Complete the [common setup](#setup), and ensure required entries are populated i
 
 - You use an existing solution/tool (not this script) to do automatic renewal with LetsEncrypt (or similar) provider.
 - You run this script either by triggering it from the tool used to do the auto-renewal or periodically via CRON or the like (or manually).
-- cppm-certsync will compare the expiration of the certificate on each server in the CPPM cluster to the certificate specified in the config and available to the script in the Filesystem.
+- `cppm-certsync` will compare the expiration of the certificate on each server in the CPPM cluster to the certificate specified in the config and available to the script in the Filesystem.
 - If the new cert has an expiration beyond that of the cert currently in CPPM, the script will start a webserver, then send an API request to CPPM instructing it to download/import the new cert and use as it's https certificate.
 - If an update occurred, or was attempted, but resulted in an error a notification can be sent (via PushBullet).  If no update was required, no notification is sent.
 
@@ -79,10 +76,11 @@ Complete the [common setup](#setup), and ensure required entries are populated i
 - An API Client Configured in ClearPass Guest Interface, and appropriate configuration in this scripts config.yaml
 - The root/signing cert needs to be imported/enabled in the Trusted Certs in ClearPass (as with any https cert you would import).
   - Clearpass Policy Manager -> Administration -> Certificates -> Trust List
-- The Auto-Renewal with LetsEncrypt or the like is handled by a different tool, the certificate needs to be available to whatever host runs cppm-synccerts (i.e. a mounted NAS drive).
-- ClearPass is instructed to import the certificate via the API, it does so by reaching out to a web-server and downloading the file.  This script starts a webserver which by default listens on port 8080 (cofnigurable), so that port would need to be available and allowed on the host this script runs on.
+- The Auto-Renewal with LetsEncrypt or the like is handled by a different tool, the certificate needs to be available to whatever host runs cppm-certsync (i.e. a mounted NAS drive). or available via a webserver on a different system.
+- ClearPass is instructed to import the certificate via the API, it does so by reaching out to a web-server and downloading the file.  By default this script starts a webserver termporarily so CPPM can download the certificate.  Alternatively the webserver can be a different host, it just needs to be accessible from both the host running this script and the ClearPass nodes.
+- If this host is running the webserver, the _(configurable)_ port it listens on needs to be available (not bound to another process).
 
->!!! **All servers in the cluster will be sent the same certificate** It's common to use a single certificate for all servers in a CPPM cluster, with the fqdn of the Cluster VIP as the CN, and the FQDNs of each individual server/alias in the SAN.  The script will get a list of all of the Servers in the cluster, and verify/update the https certificate on each of them using the same certificate (specified in the config).
+>!!! **All servers in the cluster will be sent the same certificate** It's common to use a single certificate for all servers in a CPPM cluster, with the fqdn of the Cluster VIP as the CN _(the same should also be repeated as a SAN entry)_, and the FQDNs of each individual server/alias in the SAN.  The script will get a list of all of the Servers in the cluster, and verify/update the https certificate on each of them using the same certificate (specified in the config).
 
 #### API Client Permissions:
 
@@ -140,9 +138,9 @@ You can see from the comments in the script above how the flow works.
 
 > One key note, to ssh from pfSense to my NAS.  Certificate Authentication is in use, so no password has to be sent, which allows the remote command to run from this script without prompt.
 
->The PushBullet Notification is redundant in the case of ClearPass, but I have other certificates that also use this same script.  That piece is obviously optional.
+> The PushBullet Notification is redundant in the case of ClearPass, but I have other certificates that also use this same script.  That piece is obviously optional.
 
-You can also run this script manually: `./cppm-certsync.py`
+You can also run this script manually: `./cppm-certsync.py`  _(Once you've activated the venv `source venv/bin/activate` Linux/Mac or `venv\Scripts\activate` Windows)_
 
 ------
 
@@ -172,3 +170,5 @@ You can specify `in_file` in the CPPM section of the configuration, or as the fi
 API access is still required as some queries are done to gather data to populate the xml import.
 
 > Note the script also has a function and logic to creat the roles and role-mapping via the Rest API, those are commented out, as xml was going to be required for the enforcement anyway.
+
+> ⚠ This script has not really been used or tested since the engagement it was built for.  If it's useful for something, but needs tweaks, create an issue with the details.
