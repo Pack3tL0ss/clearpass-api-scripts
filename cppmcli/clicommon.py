@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 import typer
 import json
-import pkg_resources
+# import pkg_resources
 from .config import Config
 from .logger import MyLogger
 from pyclearpass import ClearPassAPILogin
@@ -34,11 +34,12 @@ except (ImportError, ModuleNotFoundError) as e:
         raise e
 
 from cppmcli.objects import DateTime, Encoder
-from cppmcli.response import Response, Session
+from cppmcli.response import Response
 
 
 TableFormat = Literal["json", "yaml", "csv", "rich", "simple", "tabulate", "raw", "action"]
-console = Console(emoji=False)
+console = Console()
+econsole = Console(stderr=True)
 tty = utils.tty
 
 
@@ -50,10 +51,10 @@ class CLICommon:
 
     @property
     def login(self):
-        token = self.get_api_token(self.config.server, client_id=self.config.client_id, client_secret=self.config.client_secret, username=self.config.username, password=self.config.password, verify_ssl=self.config.verify_ssl)
+        token = self.get_api_token(self.config.fqdn, client_id=self.config.client_id, client_secret=self.config.client_secret, username=self.config.username, password=self.config.password, verify_ssl=self.config.verify_ssl)
         token = token.get("access_token")
         return ClearPassAPILogin(
-            server=self.config.server,
+            server=self.config.fqdn,
             granttype="client_credentials",
             clientsecret=self.config.client_secret,
             clientid=self.config.client_id,
@@ -62,6 +63,30 @@ class CLICommon:
             api_token=token,
             verify_ssl=False
         )
+
+    @staticmethod
+    def exit(msg: str = None, code: int = 1, emoji: bool = True) -> None:
+        """Print msg text and exit.
+
+        Prepends warning emoji to msg if code indicates an error.
+            emoji arg has not impact on this behavior.
+            Nothing is displayed if msg is not provided.
+
+        Args:
+            msg (str, optional): The msg to display (supports rich markup). Defaults to None.
+            code (int, optional): The exit status. Defaults to 1 (indicating error).
+            emoji (bool, optional): Set to false to disable emoji. Defaults to True.
+
+        Raises:
+            typer.Exit: Exit
+        """
+        console = Console(emoji=emoji, stderr=bool(code))
+        if code != 0:
+            msg = f"[dark_orange3]\u26a0[/]  {msg}" if msg else msg  # \u26a0 = ⚠ / :warning:
+
+        if msg:
+            console.print(msg)
+        raise typer.Exit(code=code)
 
     def get_api_token(self, server: str, *, grant_type: str = "client_credentials", client_id: str = None, client_secret: str = None, username: str = None, password: str = None, verify_ssl: bool = False):
         """
@@ -100,7 +125,8 @@ class CLICommon:
         if ctx is not None and ctx.resilient_parsing:  # tab completion, return without validating
             return
 
-        print(pkg_resources.get_distribution('cppm').version)
+        # print(pkg_resources.get_distribution('cppm').version)
+        econsole.print("Version command not implemented yet.")
 
     def debug_callback(self, ctx: typer.Context, debug: bool):
         if ctx.resilient_parsing:  # tab completion, return without validating
