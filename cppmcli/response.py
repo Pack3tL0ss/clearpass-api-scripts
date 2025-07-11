@@ -356,7 +356,6 @@ class Session():
         self.server = f"https://{self.auth.server}/api"
         self.verify_ssl = self.auth.verify_ssl
         self.headers = {**DEFAULT_HEADERS, "Authorization": f"Bearer {auth.api_token}"}
-        # self.headers["authorization"] = f"Bearer {auth.central_info['token']['access_token']}"
         self.ssl = auth.verify_ssl
         self.req_cnt = 1
         self.requests: List[LoggedRequests] = []
@@ -389,7 +388,7 @@ class Session():
 
     async def exec_api_call(self, url: str, data: dict = None, json_data: Union[dict, list] = None,
                             method: str = "GET", headers: dict = {}, params: dict = {}, **kwargs) -> Response:
-        auth = self.auth
+        # auth = self.auth
         resp = None
         _url = URL(url).with_query(params)
         _data_msg = ' ' if not url else f' [{_url.path}]'
