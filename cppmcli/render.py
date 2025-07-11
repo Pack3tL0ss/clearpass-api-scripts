@@ -25,7 +25,7 @@ from rich.text import Text
 # Detect if called from pypi installed package or via cloned github repo (development)
 try:
     from cppmcli import log, utils
-except (ImportError, ModuleNotFoundError) as e:
+except (ImportError, ModuleNotFoundError):
     pkg_dir = Path(__file__).absolute().parent
     if pkg_dir.name == "cppmcli" and str(pkg_dir.parent) not in sys.path:
         sys.path.insert(0, str(pkg_dir.parent))
@@ -240,8 +240,6 @@ def rich_output(
         tuple: raw_data, table_data
     """
     console = Console(record=True, emoji=False)
-
-    customer_id, customer_name = "", ""
 
     # -- // List[dict, ...] \\ --
     if outdata and all(isinstance(x, dict) for x in outdata):
