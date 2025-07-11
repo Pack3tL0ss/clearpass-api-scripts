@@ -137,16 +137,13 @@ class Config:
             return
         return Notify(_notify_config.get("api_key"), service=_notify_config.get("service"))
 
-    def _get_certificates(self) -> Dict[str, Dict[str, str]]:
+    def _get_certificates(self) -> Dict[str, Certificate]:
         if "certificates" in self.cppm_config:
             certs: Dict[str, Dict[str, str]] = self.cppm_config["certificates"]
             return {k: Certificate(**v) for k, v in certs.items()}
         if "https_cert_p12" in self.cppm_config:
             return {
-                "https_rsa": {
-                    "p12": self.cppm_config["https_cert_p12"],
-                    "passphrase": self.cppm_config.get("https_cert_passphrase")
-                }
+                "https_rsa": Certificate(p12=self.cppm_config["https_cert_p12"], passphrase=self.cppm_config.get("https_cert_passphrase"))
             }
 
     @property
