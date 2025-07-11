@@ -68,6 +68,7 @@ class CpHandler(BaseHTTPRequestHandler):
         cls.passphrase = passphrase
 
     def do_GET(self):
+        install(show_locals=True)  # better Traceback hook
         self.send_response(200)
         self.send_header("Content-Type", "application/x-pkcs12")
         self.end_headers()
@@ -117,7 +118,7 @@ def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL 
         _msg = f"[red]Exception[/]: [dim italic]({e.__class__.__name__}, {e})[/] in [cyan]get_cert_expiration[/]: During Attempt to get expiration from PKCS12 data.  Host: [magenta]{full_url.host}[/] Certificate: [cyan]{cert_p12}[/]."
         if pb and "</html>" in str(pb):
             _msg += f"  Response appears to be html not a PKCS12 certificate.  Perhaps the path ({full_url.path}) or port ({full_url.port}) is wrong."
-        _msg += "[red italic]Script will exit[/]."
+        _msg += "  [red italic]Script will exit[/]."
         log.error(_msg, show=True)
         log.exception(e, show=False)
         exit(1)
