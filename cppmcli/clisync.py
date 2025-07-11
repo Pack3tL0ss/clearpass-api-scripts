@@ -11,12 +11,12 @@ from rich import print
 
 # Detect if called from pypi installed package or via cloned github repo (development)
 try:
-    from cppmcli import cli, cleaner
+    from cppmcli import cli, cleaner  # NoQA
 except (ImportError, ModuleNotFoundError) as e:
     pkg_dir = Path(__file__).absolute().parent
     if pkg_dir.name == "centralcli":
         sys.path.insert(0, str(pkg_dir.parent))
-        from cppmcli import cli, cleaner
+        from cppmcli import cli, cleaner  # NoQA
     else:
         print(pkg_dir.parts)
         raise e
