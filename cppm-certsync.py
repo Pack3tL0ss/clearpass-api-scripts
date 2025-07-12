@@ -11,12 +11,11 @@ import socket
 import sys
 import threading
 import zoneinfo
+from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING, Literal, Tuple
-from functools import lru_cache
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Tuple
 
-# import netifaces
 import pendulum
 import requests
 from cryptography.hazmat.backends import default_backend
@@ -26,10 +25,12 @@ from yarl import URL
 
 from common import log
 from common.cppmauth import ClearPassAuth
+
 if TYPE_CHECKING:
     from common.config import Certificate
 
 from rich.traceback import install
+
 install(show_locals=True)
 
 UpdateRes = Literal["updated", "same", "older", "error"]
