@@ -90,7 +90,7 @@ class AosConnect(Response):
 class MyLogger:
     def __init__(self, log_file: str | Path, debug: bool = False, show: bool = False):
         self.log_msgs: List[str] = []
-        self.DEBUG = debug
+        self._DEBUG = debug
         self.verbose = False
         if isinstance(log_file, Path):
             self.log_file = log_file
@@ -99,6 +99,15 @@ class MyLogger:
         self._log = self.get_logger()
         self.name = self._log.name
         self.show = show  # Sets default log behavior (other than debug)
+
+    @property
+    def DEBUG(self):
+        return self._DEBUG
+
+    @DEBUG.setter
+    def DEBUG(self, value: bool):
+        self._log.setLevel(level=logging.DEBUG if value else logging.INFO)
+        self._DEBUG = value
 
     def get_logger(self):
         '''Return custom log object.'''
@@ -183,3 +192,32 @@ log_file = _calling_script.joinpath(_calling_script.resolve().parent, "logs", f"
 
 # config = Config()
 log = MyLogger(log_file, show=True)
+
+
+class Utils:  # class for the sake of namespace
+    @staticmethod
+    def exit(msg: str = None, code: int = 1, emoji: bool = True) -> None:
+        """Print msg text and exit.
+
+        Prepends warning emoji to msg if code indicates an error.
+            emoji arg has not impact on this behavior.
+            Nothing is displayed if msg is not provided.
+
+        Args:
+            msg (str, optional): The msg to display (supports rich markup). Defaults to None.
+            code (int, optional): The exit status. Defaults to 1 (indicating error).
+            emoji (bool, optional): Set to false to disable emoji. Defaults to True.
+
+        Raises:
+            builtin exit to exit program.
+        """
+        console = Console(emoji=emoji, stderr=code)
+        if code != 0:
+            msg = f"[dark_orange3]\u26a0[/]  {msg}" if msg else msg  # \u26a0 = ⚠ / :warning:
+
+        if msg:
+            console.print(msg)
+
+        exit(code=code)
+
+utils = Utils()

@@ -21,9 +21,10 @@ import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import pkcs12
 from rich.console import Console
+from rich.markdown import Markdown
 from yarl import URL
 
-from common import log
+from common import log, utils
 from common.cppmauth import ClearPassAuth
 
 if TYPE_CHECKING:
@@ -40,6 +41,9 @@ Service = Literal["HTTPS", "HTTPS(RSA)", "RADIUS", "RadSec"]
 console = Console()
 econsole = Console(stderr=True)
 cppm = ClearPassAuth()
+
+# NOTE: logger defaults to show=True meaning it will write formatted output to stderr, and clean output (formatting stripped) to the log file
+# use show=False to only log to file.
 
 
 # certificate expiry looks like 'Apr 04, 2025 14:04:11 CDT'
@@ -68,7 +72,7 @@ class CpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(p.read_bytes())
         else:
-            log.error(f"Unable to fulfill request from [cyan]{self.address_string()}[/] for [cyan]{p.name}[/].  [cyan]{p}[/] [red]File Not Found[/].")
+            log.error(f"Unable to process request from [cyan]{self.address_string()}[/] for [cyan]{p.name}[/].  [cyan]{p}[/] [red]File Not Found[/].")
             self.send_error(404)
         return
 
@@ -78,14 +82,14 @@ def get_le_cert_from_external(webserver_full_url: str):
     try:
         r = requests.get(webserver_full_url)
         if not r.ok:
-            econsole.print(f"[dark_orange3]:warning:[/]  Failed to get cert from external webserver {webserver_full_url} [dim]{r.status_code}[/] [red]{r.reason}[/]")
-            exit(1)
+            log.error(f"Failed to get cert from external webserver {webserver_full_url} [dim]{r.status_code}[/] [red]{r.reason}[/]")
+            utils.exit()
         else:
             return r.content
     except Exception as e:
-        log.exception(f"Exception occured while getting current LE cert from {webserver_full_url}. {e.__class__.__name__}", show=True)
-        log.exception(e)
-        exit(1)
+        log.exception(f"Exception occured while getting current LE cert from {webserver_full_url}. {e.__class__.__name__}")
+        log.exception(e, show=False)
+        utils.exit()
 
 
 def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL | str) -> datetime.datetime:
@@ -103,20 +107,20 @@ def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL 
                 break
         if not pb:
             log.fatal(f"{cppm.webserver.web_root / cert_p12} Not Found")
-            exit(1)
+            utils.exit()
 
     try:
         le_p12 = pkcs12.load_key_and_certificates(pb, cert_passphrase.encode("UTF-8"), backend=default_backend())
         le_cert = le_p12[1]
         le_exp = le_cert.not_valid_after_utc
     except Exception as e:
-        _msg = f"[red]Exception[/]: [dim italic]({e.__class__.__name__}, {e})[/] in [cyan]get_cert_expiration[/]: During Attempt to get expiration from PKCS12 data.  Host: [magenta]{full_url.host}[/] Certificate: [cyan]{cert_p12}[/]."
+        _msg = f"[dark_orange3]:warning:[/]  [red]Exception[/]: [dim italic]({e.__class__.__name__}, {e})[/] in [cyan]get_cert_expiration[/]: During Attempt to get expiration from PKCS12 data.  Host: [magenta]{full_url.host}[/] Certificate: [cyan]{cert_p12}[/]."
         if pb and "</html>" in str(pb):
             _msg += f"  Response appears to be html not a PKCS12 certificate.  Perhaps the path ({full_url.path}) or port ({full_url.port}) is wrong."
         _msg += "  [red italic]Script will exit[/]."
-        log.error(_msg, show=True)
+        log.error(_msg)
         log.exception(e, show=False)
-        exit(1)
+        utils.exit()
 
     return le_exp
 
@@ -132,14 +136,14 @@ def _get_server_ids() -> Dict[str, str]:
         r = requests.get(url, headers=headers)
         r.raise_for_status()
     except Exception as e:
-        log.error(f"exception: {e}")
-        exit(1)
+        log.error(f"Exception: {e.__class__.__name__} {e}")
+        utils.exit(code=1)
 
     servers: List[Dict[str, str]] = r.json().get("_embedded", {}).get("items", {})
     return {svr.get("name"): svr.get("server_uuid") for svr in sorted(servers, key=lambda s: s["name"])}
 
 
-def start_webserver(port: int = None) -> HTTPServer | None:
+def start_webserver(port: int = None, serve_only: bool = False) -> HTTPServer | None:
     port = port or cppm.webserver.port
     def _start_webserver(port: int = None):
         httpd = None
@@ -162,16 +166,16 @@ def start_webserver(port: int = None) -> HTTPServer | None:
         return
 
     httpd = _start_webserver(port=port)
-    if "--serve-only" in sys.argv:
+    if serve_only:
         try:
             econsole.print("[yeallow]:information:[/]  webserver only mode.  Use [cyan]CTRL-C[/] to stop webserver")
             while True:
                 import time
                 time.sleep(3)
         except (KeyboardInterrupt, EOFError):
-            log.info("Stopping WebServer")
+            log.info("Stopping WebServer", show=False)
             httpd.shutdown()
-            exit(0)
+            utils.exit("[red]:stop_sign:[/]  WebServer Stopped", code=0)
 
     return httpd
 
@@ -235,7 +239,10 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]]:
     for req in req_data:
         try:
             r = requests.get(req.url, headers=cppm.headers)
-            if r.ok:
+            if not r.ok:
+                _res.append((req.name, req.svc, "error"))
+                log.error(f"[GET: [italic]{r.url}[/]] {r.status_code} {r.reason}")
+            else:
                 rdict: Dict[str, str | int | List[str], Dict[str, Any] | bool] = r.json()
                 this_exp = get_expiry_from_response(rdict)
                 le_exp = get_cert_expiration(*req, webserver_url=cppm.webserver.url)
@@ -247,21 +254,14 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]]:
 
                     # tell cppm to download new cert
                     r = requests.put(req.url, json=req.payload, headers=cppm.headers, verify=False)
-                    _res.append((req.name, req.svc, "updated") if r.status_code == 200 else (req.name, "error"))
-                    if r.ok:
-                        log.info(f"PUT:OK:{req.name}:{r.status_code}:{r.reason}")
-                    else:
-                        _msg = "\n".join([f"\t{k}: {v}" for k, v in r.json().items() if v])
-                        log.error(f"PUT:ERROR:{req.name}\n{_msg}")
+                    _res.append((req.name, req.svc, "updated") if r.status_code == 200 else (req.name, req.svc, "error"))
+                    _log_func = log.info if r.ok else log.error
+                    _log_func(f"[PUT: [italic]{r.url}[/]] {r.status_code} {r.reason}")
                 else:
                     words = ('same', 'as') if diff.days == 0 else ('older', 'than')
                     _msg = f"New cert has {words[0]} expiration {words[1]} {req.name} {req.svc} cert. No Update performed."
                     _res.append((req.name, req.svc, words[0]))
                     log.info(_msg)
-            else:
-                _res.append((req.name, req.svc, "error"))
-                _msg = f"GET: {r.status_code}:{r.reason}"
-                log.error(_msg)
         except Exception as e:
             _msg = f"[red]Exception[/]: [dim italic]({e.__class__.__name__}, {e})[/] in [cyan]put_certs[/]: During Attempt to update [magenta]{req.name}[/] [cyan]{req.svc}[/] certificate @ URL [cyan]{req.url}[/] with new certificate @ {cppm.webserver.url / req.cert_p12}"
             log.error(_msg, show=True)
@@ -286,13 +286,13 @@ def _get_server_version() -> Version:
         r = requests.get(url, headers=cppm.headers)
         r.raise_for_status()
     except Exception as e:
-        log.error(f"exception: {e}")
+        log.error(f"[red]:warning:[/]  exception: {e}")
         exit(1)
 
     try:
         return Version(r.json().get("cppm_version"))
     except Exception as e:
-        print(f"{e.__class__.__class__}, {e}")
+        print(f"[dark_orange3]:warning:[/]  {e.__class__.__class__}, {e}")
         log.error(e)
         exit(1)
 
@@ -310,38 +310,77 @@ def _load_pb():
 
 
 def do_push(res):
-    if "no-push" not in str(sys.argv):
-        push = _load_pb()
+    push = _load_pb()
+    try:
+        if push and [r[2] for r in res if r[2] not in ["same", "older"]]:
+            res_str = "\n".join([f"{svr} ({svc}): {result}" for svr, svc, result in res])
+            push_res = push("ClearPass Cert Update", res_str)
+            log.debug(f"Push Response:\n{push_res}")
+    except Exception as e:
+        log.exception(f"PushBullet Exception: {e}")
+
+
+def help_from_md():
+    md = []
+    readme_file = Path(__file__).parent / "README.md"
+    readme_txt = readme_file.read_text()
+    capture = False
+    for line in readme_txt.splitlines():
+        if '#### Command Line Arguments' in line:
+            capture = True
+        elif capture and line.startswith("#"):
+            capture = False
+            break
+        if capture:
+            md += [line]
+
+    md = Markdown("\n".join(md))
+
+    print()
+    console.rule('The Following is extracted from the readme')
+    console.print(md)
+    console.rule()
+    console.print("[yellow]:information:[/] [dark_olive_green3 italic]Refer to README @ https://github.com/Pack3tL0ss/clearpass-api-scripts/tree/main for more details[/]")
+
+class Args:
+    def __init__(self, port: int | None, serve_only: bool, push: bool):
+        self.port = port
+        self.serve_only = serve_only
+        self.push = push
+
+def process_args() -> Args:
+    """Currently only processing the port
+    """
+    if "--help" in sys.argv or "?" in sys.argv:
+        utils.exit(help_from_md(), code=0)
+
+    port = None
+    if "--port" in sys.argv:
         try:
-            if push and [r[2] for r in res if r[2] not in ["same", "older"]]:
-                res_str = "\n".join([f"{svr} ({svc}): {result}" for svr, svc, result in res])
-                push_res = push("ClearPass Cert Update", res_str)
-                log.debug(f"Push Response:\n{push_res}")
-        except Exception as e:
-            log.exception(f"PushBullet Exception: {e}")
+            port = int(sys.argv[sys.argv.index("--port") + 1])
+        except IndexError:
+            utils.exit("Missing argument after [cyan]--port[/] :triangular_flag:")
+        except ValueError:
+            utils.exit(f"Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index("--port") + 1]} should be a valid integer.")
+    serve_only = True if "--serve-only" in sys.argv else False
+    push = False if "--no-push" in sys.argv else True
+    if "--debug" in sys.argv:
+        cppm.DEBUG = log.DEBUG = True
+    # --https-rsa, --https-ecc, --radsec, and --radius flags are processed in _get_update_certs
+
+    return Args(port=port, serve_only=serve_only, push=push)
 
 
 if __name__ == "__main__":
     # TODO make part of cpcli can handle flags there
     if not cppm.valid_cert_sync:
-        econsole.print(f"[dark_orange3]:warning:[/]  Configuration file {cppm.file} does not appear to be valid.  Refer to example @ https://raw.githubusercontent.com/Pack3tL0ss/clearpass-api-scripts/refs/heads/main/config.yaml.example")
-        exit(1)
-
-    port = None
-    if "--port" in sys.argv:
-        try:
-            port = int(sys.argv[sys.argv.index["--port" + 1]])
-        except IndexError:
-            econsole.print("[dark_orange3]:warning:[/]  Missing argument after [cyan]--port[/] :triangular_flag:")
-            exit(1)
-        except ValueError:
-            econsole.print(f"[dark_orange3]:warning:[/]  Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index['--port' + 1]]} should be a valid integer.")
-            exit(1)
-
-    httpd = start_webserver(port)
+        utils.exit(f"Configuration file {cppm.file} does not appear to be valid.  Refer to example @ https://raw.githubusercontent.com/Pack3tL0ss/clearpass-api-scripts/refs/heads/main/config.yaml.example")
+    args = process_args()
+    httpd = start_webserver(port=args.port, serve_only=args.serve_only)  # determines if it should actually start in the function
     res = put_certs()
     if httpd:
-        log.info("Stopping WebServer")
+        log.info("[red]:stop_sign:[/]  Stopping WebServer")
         httpd.shutdown()
 
-    do_push(res)
+    if args.push:
+        do_push(res)
