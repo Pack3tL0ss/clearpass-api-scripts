@@ -2,7 +2,6 @@
 
 import requests
 import sys
-# from common import config
 from functools import partial
 from typing import Literal, Dict, Any, Union
 from yarl import URL
