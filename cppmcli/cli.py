@@ -3,21 +3,17 @@
 
 import os
 import sys
-import asyncio
 from pathlib import Path
-
-from rich import print
-from rich.console import Console
 
 import typer
 
 try:
-    from cppmcli import cli, config, log, clishow
-except (ImportError, ModuleNotFoundError) as e:
+    from cppmcli import cli, config, log, clishow, clisync
+except (ImportError, ModuleNotFoundError):
     pkg_dir = Path(__file__).absolute().parent
     if pkg_dir.name == "cppmcli" and str(pkg_dir.parent) not in sys.argv:
         sys.path.insert(0, str(pkg_dir.parent))
-    from cppmcli import cli, config, log, clishow
+    from cppmcli import cli, config, log, clishow, clisync
 
 
 CONTEXT_SETTINGS = {
@@ -27,6 +23,7 @@ CONTEXT_SETTINGS = {
 
 app = typer.Typer(context_settings=CONTEXT_SETTINGS, rich_markup_mode="rich")
 app.add_typer(clishow.app, name="show",)
+app.add_typer(clisync.app, name="sync", hidden=True)  # TODO need to move and refactor cppm-certsync to integrate into cli
 
 
 def all_commands_callback(ctx: typer.Context, update_cache: bool):

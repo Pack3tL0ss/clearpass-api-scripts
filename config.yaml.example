@@ -3,16 +3,29 @@
 
 # CPPM Defaults:
 # -- grant_type: client_credentials
-# -- webserver: port: 8080
+# -- webserver: port: Not included in url if not provided (so 80 if url is http or 443 if url is https)
 # -- username: nul (must provide value if grant_type: password)
 # -- password: nul (must provide value if grant_type: password)
-# -- FQDN can be VIP all servers in cluster will be sent cert
+# -- fqdn should be fqdn of VIP or publisher.  Cluster nodes will be querried and all nodes will have certs updated.
 CPPM:
   fqdn: cppm.arubalab.net
   client_id: Full API Client
   client_secret: ClearPass-API-Client-Secret-Goes-Here
-  https_cert_p12: cppm.arubalab.net.p12  # used as final portion of webserver full url, and as last part of local cert path
-  https_cert_passphrase: reD@cted!!
+
+  certificates:  # At least 1 certificate type is required.  By default the script will update all defined types unless called with one or more command line flags --https-rsa --https-ecc --radius --radsec
+    https_rsa:   # This represents the HTTPS(RSA) service in ClearPass > 6.10, or HTTPS in older versions
+      p12: https-rsa-cppm.arubalab.net.p12  # used as final portion of webserver full url, and as filename expected to exist in web_root (dir) if webserver is local
+      passphrase: reD@cted!!
+    #https_ecc:
+    #  p12: https-ecc-cppm.arubalab.net.p12
+    #  passphrase: reD@cted!!
+    #radius:
+    #  p12: radius-cppm.arubalab.net.p12
+    #  passphrase: reD@cted!!
+    #radsec:
+    #  p12: radsec-cppm.arubalab.net.p12
+    #  passphrase: reD@cted!!
+
   webserver:
     base_url: http://omv.arubalab.net  # ip or fqdn cppm would use to access server hosting the cert (this system or external)
     port: 8080
@@ -20,8 +33,8 @@ CPPM:
     local: false  # if not provided the script will attempt to determine if this is the server hosting the cert files.
                   # setting local will bypass the check.  local: true will result in webserver being started on this system
                   # to serve certificates to cppm.  If set to false the server at base_url should be providing the webserver.
-  # The above will result in "http://omv.arubalab.net:8080/certs/cppm.arubalab.net.p12" being used as the full path where CPPM can get the cert
-  cert_dir: "/export/FileDump/certificates/LetsEncrypt"
+    web_root: /export/FileDump/certificates/LetsEncrypt  # Only applies if this script is also going to act as a temporary webserver to host the certificate.
+    # The above will result in "http://omv.arubalab.net:8080/certs/https-rsa-cppm.arubalab.net.p12" being used as the full path where CPPM can get the https_rsa cert. The actual cert files should exist in the web_root directory.
 
   # -- // used in pol-elements-from-csv.py \\ --
   in_file: in/adgroup2tunnel.csv

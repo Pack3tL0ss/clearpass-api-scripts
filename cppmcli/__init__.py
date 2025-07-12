@@ -40,8 +40,8 @@ else:
         print("Warning Logic Error in git/pypi detection")
         print(f"base_dir Parts: {base_dir.parts}")
 
-from .logger import MyLogger
-from .config import Config
+from .logger import MyLogger  #NoQA
+from .config import Config  # NoQA
 config = Config(base_dir=base_dir)
 
 log_dir = config.base_dir / "logs"
@@ -63,9 +63,9 @@ log = MyLogger(log_file, debug=config.debug, show=config.debug, verbose=config.d
 log.debug(f"{__name__} __init__ calling script: {_calling_script}, base_dir: {config.base_dir}")
 log.debugv(f"config attributes: {json.dumps({k: str(v) for k, v in config.__dict__.items()}, indent=4)}")
 
-from .utils import Utils
+from .utils import Utils  # NoQA
 utils = Utils()
-from .clicommon import CLICommon
+from .clicommon import CLICommon  #NoQA
 
 if os.environ.get("TERM_PROGRAM") == "vscode":
     from .vscodeargs import vscode_arg_handler
