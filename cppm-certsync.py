@@ -78,7 +78,7 @@ def get_le_cert_from_external(webserver_full_url: str):
     try:
         r = requests.get(webserver_full_url)
         if not r.ok:
-            econsole.print(f"[dark_orange3]:warning:[/]  Failed to get cert from external webserver {webserver_full_url}")
+            econsole.print(f"[dark_orange3]:warning:[/]  Failed to get cert from external webserver {webserver_full_url} [dim]{r.status_code}[/] [red]{r.reason}[/]")
             exit(1)
         else:
             return r.content
@@ -158,13 +158,13 @@ def start_webserver(port: int = None) -> HTTPServer | None:
         if not cppm.webserver.valid:
             econsole.print("[dark_orange3]:warning:[/]  [red italic]Skipping web_server startup[/], [cyan]webserver[/] section missin or invalid.  [dim italic][cyan]base_url[/] is [red]required[/][/dim italic]")
         else:
-            econsole.print("[yeallow]:information:  [dark_olive_green3 italic]Skipping web_server startup, based on config.[/]")
+            econsole.print("[yeallow]:information:[/]  [dark_olive_green3 italic]Skipping web_server startup, based on config.[/]")
         return
 
     httpd = _start_webserver(port=port)
     if "--serve-only" in sys.argv:
         try:
-            econsole.print(":information:  webserver only mode.  CTRL-C to stop webserver")
+            econsole.print("[yeallow]:information:[/]  webserver only mode.  Use [cyan]CTRL-C[/] to stop webserver")
             while True:
                 import time
                 time.sleep(3)
