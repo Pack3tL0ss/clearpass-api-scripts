@@ -361,7 +361,7 @@ def process_args() -> Args:
         except IndexError:
             utils.exit("Missing argument after [cyan]--port[/] :triangular_flag:")
         except ValueError:
-            utils.exit(f"Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index("--port") + 1]} should be a valid integer.")
+            utils.exit(f"Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index('--port') + 1]} should be a valid integer.")
     serve_only = True if "--serve-only" in sys.argv else False
     push = False if "--no-push" in sys.argv else True
     if "--debug" in sys.argv:
