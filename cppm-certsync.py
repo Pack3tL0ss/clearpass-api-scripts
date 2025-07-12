@@ -63,11 +63,11 @@ class CpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         p = cppm.webserver.web_root / self.path.split("/")[-1]
         if p.exists():
-            log.info(f"Sending {p.name}")
-            self.wfile.write(p.read_bytes())
+            log.info(f"Sending {p.name} to {self.address_string()}")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "application/x-pkcs12")
             self.end_headers()
+            self.wfile.write(p.read_bytes())
         else:
             log.error(f"Unable to fulfill request from [cyan]{self.address_string()}[/] for [cyan]{p.name}[/].  [cyan]{p}[/] [red]File Not Found[/].")
             self.send_error(HTTPStatus.NOT_FOUND)
