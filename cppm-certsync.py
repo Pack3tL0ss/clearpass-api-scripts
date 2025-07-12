@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2025-10.0
+# Version: 2025-10.1
 #
 from __future__ import annotations
 
@@ -223,11 +223,14 @@ class ClearPassURL:
     def __iter__(self):
         return iter((self.cert_p12, self.cert_passphrase))
 
-def put_certs() -> List[Tuple[str, Service, UpdateRes]]:
+def put_certs() -> List[Tuple[str, Service, UpdateRes]] | None:
     """Update Certificates on CPPM nodes"""
 
     servers = _get_server_ids()
     certs = _get_update_certs()
+    if not certs:
+        log.warning("No Certificates configured matching provided usage flags.", log=False)
+        return
 
     req_data: List[ClearPassURL] = []
     for svc in certs:
@@ -382,5 +385,7 @@ if __name__ == "__main__":
         log.info("[red]:stop_sign:[/]  Stopping WebServer")
         httpd.shutdown()
 
-    if args.push:
+    if not res:
+        exit(1)
+    elif args.push:
         do_push(res)
