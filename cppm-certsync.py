@@ -13,6 +13,7 @@ import threading
 import zoneinfo
 from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Tuple
 
@@ -60,12 +61,16 @@ def _get_timezone_from_abbr(abbr) ->zoneinfo.ZoneInfo | str:
 
 class CpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "application/x-pkcs12")
-        self.end_headers()
         p = cppm.webserver.web_root / self.path.split("/")[-1]
-        self.wfile.write(p.read_bytes())
-        log.info(f"Sending {p.name}")
+        if p.exists():
+            log.info(f"Sending {p.name}")
+            self.wfile.write(p.read_bytes())
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/x-pkcs12")
+            self.end_headers()
+        else:
+            log.error(f"Unable to fulfill request from [cyan]{self.address_string()}[/] for [cyan]{p.name}[/].  [cyan]{p}[/] [red]File Not Found[/].")
+            self.send_error(HTTPStatus.NOT_FOUND)
         return
 
 
