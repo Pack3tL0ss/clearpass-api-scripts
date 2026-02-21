@@ -1,6 +1,6 @@
 [project]
 name = "cppm"
-version = "0.1.0"
+version = "0.2.0"
 description = "A CLI for interacting with Aruba ClearPass via API.  Facilitates bulk imports, exports, reporting."
 license = "MIT"
 authors = [{name="Wade Wells (Pack3tL0ss)", email="wade@consolepi.org"}]

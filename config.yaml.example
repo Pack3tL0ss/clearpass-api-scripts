@@ -4,13 +4,16 @@
 # CPPM Defaults:
 # -- grant_type: client_credentials
 # -- webserver: port: Not included in url if not provided (so 80 if url is http or 443 if url is https)
+# -- webserver: verify_ssl: True
 # -- username: nul (must provide value if grant_type: password)
 # -- password: nul (must provide value if grant_type: password)
 # -- fqdn should be fqdn of VIP or publisher.  Cluster nodes will be querried and all nodes will have certs updated.
+# -- verify_ssl: True
 CPPM:
   fqdn: cppm.arubalab.net
   client_id: Full API Client
   client_secret: ClearPass-API-Client-Secret-Goes-Here
+  verify_ssl: false # default is true, need to set to false if CPPM webserver cert was allowed to expire
 
   certificates:  # At least 1 certificate type is required.  By default the script will update all defined types unless called with one or more command line flags --https-rsa --https-ecc --radius --radsec
     https_rsa:   # This represents the HTTPS(RSA) service in ClearPass > 6.10, or HTTPS in older versions
@@ -30,6 +33,7 @@ CPPM:
     base_url: http://omv.arubalab.net  # ip or fqdn cppm would use to access server hosting the cert (this system or external)
     port: 8080
     path: "certs"
+    verify_ssl: false  # defaults to true, Would only have impact if using https for webserver
     local: false  # if not provided the script will attempt to determine if this is the server hosting the cert files.
                   # setting local will bypass the check.  local: true will result in webserver being started on this system
                   # to serve certificates to cppm.  If set to false the server at base_url should be providing the webserver.
