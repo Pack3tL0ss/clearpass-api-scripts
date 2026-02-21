@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2025-10.1
+# Version: 2026-2.21
 #
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ class CpHandler(BaseHTTPRequestHandler):
 @lru_cache(typed=True)
 def get_le_cert_from_external(webserver_full_url: str):
     try:
-        r = requests.get(webserver_full_url)
+        r = requests.get(webserver_full_url, verify=cppm.webserver.verify_ssl)
         if not r.ok:
             log.error(f"Failed to get cert from external webserver {webserver_full_url} [dim]{r.status_code}[/] [red]{r.reason}[/]")
             utils.exit()
@@ -133,7 +133,7 @@ def _get_server_ids() -> Dict[str, str]:
     headers = {"Content-Type": "application/json", "Authorization": f"{cppm.token_type} {cppm.access_token}"}
 
     try:
-        r = requests.get(url, headers=headers)
+        r = requests.get(url, headers=headers, verify=cppm.verify_ssl)
         r.raise_for_status()
     except Exception as e:
         log.error(f"Exception: {e.__class__.__name__} {e}")
@@ -241,7 +241,7 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]] | None:
     _res = []
     for req in req_data:
         try:
-            r = requests.get(req.url, headers=cppm.headers)
+            r = requests.get(req.url, headers=cppm.headers, verify=cppm.verify_ssl)
             if not r.ok:
                 _res.append((req.name, req.svc, "error"))
                 log.error(f"[GET: [italic]{r.url}[/]] {r.status_code} {r.reason}")
@@ -256,7 +256,7 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]] | None:
                         log.info(f"[bright_green]Updating[/] [dark_olive_green3]{req.name}[/] [cyan]{req.svc}[/] certificate as the current cert is self signed.")
 
                     # tell cppm to download new cert
-                    r = requests.put(req.url, json=req.payload, headers=cppm.headers, verify=False)
+                    r = requests.put(req.url, json=req.payload, headers=cppm.headers, verify=cppm.verify_ssl)
                     _res.append((req.name, req.svc, "updated") if r.status_code == 200 else (req.name, req.svc, "error"))
                     _log_func = log.info if r.ok else log.error
                     _log_func(f"[PUT: [italic]{r.url}[/]] {r.status_code} {r.reason}")
@@ -286,7 +286,7 @@ def _get_server_version() -> Version:
     url = f"https://{cppm.fqdn}/api/server/version"
 
     try:
-        r = requests.get(url, headers=cppm.headers)
+        r = requests.get(url, headers=cppm.headers, verify=cppm.verify_ssl)
         r.raise_for_status()
     except Exception as e:
         log.error(f"[red]:warning:[/]  exception: {e}")

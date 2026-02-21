@@ -3,7 +3,7 @@
 import requests
 import sys
 from functools import partial
-from typing import Literal, Dict, Any, Union
+from typing import Literal, Any, Union
 from yarl import URL
 import pendulum
 from functools import wraps
@@ -26,7 +26,7 @@ class ClearPassAuth(Config):
 
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         _headers = {'Content-Type': 'application/json'}
         if hasattr(self, "access_token"):
             _headers = {**_headers, "Authorization": f"{self.token_type} {self.access_token}"}
@@ -36,17 +36,17 @@ class ClearPassAuth(Config):
     def build_url(func):
         @wraps(func)
         def wrapper(self, url: StrOrURL, *args, **kwargs):
-            url = url if url.startswith("http") else self.oath_base_url / url.lstrip("/")
+            url = url if url.startswith("http") else self.oath_base_url / url.lstrip("/")  # TODO don't think self.oauth_base_url is available here
             return func(self, url, *args, **kwargs)
 
         return wrapper
 
     @build_url
-    def get(self, url) -> Dict[str, Any]:
+    def get(self, url: StrOrURL) -> dict[str, Any]:
         """Generic GET request"""
 
         try:
-            r = requests.get(url, headers=self.headers)
+            r = requests.get(url, headers=self.headers, verify=self.verify_ssl)
             r.raise_for_status()
         except Exception as e:
             print(e)
@@ -55,13 +55,13 @@ class ClearPassAuth(Config):
         return r.json()
 
     @build_url
-    def post(self, url: str, payload: Dict[str, Any] = None, headers: Dict[str, str] = None) -> Dict[str, Any]:
+    def post(self, url: str, payload: dict[str, Any] = None, headers: dict[str, str] = None) -> dict[str, Any]:
         """Generic POST request"""
 
         headers = headers or self.headers
 
         try:
-            r = requests.post(url, headers=headers, json=payload)
+            r = requests.post(url, headers=headers, json=payload, verify=self.verify_ssl)
             r.raise_for_status()
         except Exception as e:
             print(e)

@@ -20,13 +20,14 @@ NotifyService = Literal["pushbullet"]
 econsole = Console(stderr=True)
 
 class WebServer:
-    def __init__(self, base_url: str = None, port: int = None, path: str = None, local: bool = None, web_root: str | Path = None, cert_dir: str | Path = None):
+    def __init__(self, base_url: str = None, port: int = None, path: str = None, local: bool = None, web_root: str | Path = None, cert_dir: str | Path = None, verify_ssl: bool = True):
         web_root = web_root or cert_dir  # cert_dir is depricated
         self.base_url: URL = base_url if not isinstance(base_url, str) else URL(base_url)
         self._port = port
         self._path = path
         self._local: bool = local
         self.web_root: Path = web_root if not web_root or isinstance(web_root, Path) else Path(web_root)
+        self.verify_ssl = verify_ssl
 
     @cached_property
     def url(self) -> URL | None:  # We allow this class to be instantiated with no values to avoid having to do multiple checks elsewhere
@@ -116,6 +117,7 @@ class Config:
         self.grant_type = self.cppm_config.get("grant_type", "client_credentials")
         self.username = self.cppm_config.get("username")
         self.password = self.cppm_config.get("password")
+        self.verify_ssl = self.cppm_config.get("verify_ssl", True)
         if "webserver" not in self.cppm_config:
             self.webserver = None
         else:
