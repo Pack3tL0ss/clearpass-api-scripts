@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2026-2.21
+# Version: 2026-3.03
 #
 from __future__ import annotations
 
@@ -42,6 +42,17 @@ console = Console()
 econsole = Console(stderr=True)
 cppm = ClearPassAuth()
 
+TZ_MAP = {
+    "PDT": "US/Pacific",
+    "PST": "US/Pacific",
+    "MDT": "US/Mountain",
+    "MST": "US/Mountain",
+    "CDT": "America/Chicago",
+    "CST": "America/Chicago",
+    "EDT": "America/New_York",
+    "EST": "America/New_York",
+}
+
 # NOTE: logger defaults to show=True meaning it will write formatted output to stderr, and clean output (formatting stripped) to the log file
 # use show=False to only log to file.
 
@@ -59,7 +70,7 @@ def _get_timezone_from_abbr(abbr) ->zoneinfo.ZoneInfo | str:
         if tz_name == abbr:
             return timezone # Pendulum can handle a ZoneInfo timezone object, or a string
 
-    return abbr  # Fallback to the original, pendulum might be able to handle it, who knows?
+    return TZ_MAP.get(abbr, abbr)  # As fallback lookup common defs in TZMAP if not found return the original.  Will likely cause an invalid tz exception
 
 
 class CpHandler(BaseHTTPRequestHandler):
