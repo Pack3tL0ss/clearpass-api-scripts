@@ -101,7 +101,7 @@ def version(
         False, "--debug", envvar="ARUBACLI_DEBUG", help="Enable Additional Debug Logging",
     ),
 ) -> None:
-    """Show current cencli version, and latest available version.
+    """Show current cpcli version, and latest available version.
     """
     cli.version_callback()
 

@@ -54,7 +54,7 @@ def all_commands_callback(ctx: typer.Context, update_cache: bool):
 @app.callback()
 def callback(
     # ctx: typer.Context,``
-    version: bool = typer.Option(False, "--version", "-V", "-v", case_sensitive=False, is_flag=True, help="Show current cencli version, and latest available version."),
+    version: bool = typer.Option(False, "--version", "-V", "-v", case_sensitive=False, is_flag=True, help="Show current cpcli version, and latest available version."),
     debug: bool = typer.Option(False, "--debug", is_flag=True, envvar="ARUBACLI_DEBUG", help="Enable Additional Debug Logging",),
     debugv: bool = typer.Option(False, "--debugv", is_flag=True, help="Enable Verbose Debug Logging", hidden=True, lazy=True, callback=all_commands_callback),
 ) -> None:
