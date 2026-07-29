@@ -2,7 +2,7 @@
 #
 # Author: Wade Wells github/Pack3tL0ss
 #
-# Version: 2026-3.03
+# Version: 2026-7.29
 #
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import zoneinfo
 from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Tuple
+from typing import TYPE_CHECKING, Any, Literal
 
 import pendulum
 import requests
@@ -62,7 +62,7 @@ TZ_MAP = {
 # and generate tzname names until we find a match, then return that ZoneInfo object
 def _get_timezone_from_abbr(abbr) ->zoneinfo.ZoneInfo | str:
     """Convert timezone abbreviation to a valid ZoneInfo timezone string."""
-    now = datetime.datetime.now()
+    now = datetime.datetime.now()  # NoQA
     for tz in zoneinfo.available_timezones():
         timezone = zoneinfo.ZoneInfo(key=tz)
         # Using the timezone object, get the name of the timezone from datetime
@@ -85,7 +85,6 @@ class CpHandler(BaseHTTPRequestHandler):
         else:
             log.error(f"Unable to process request from [cyan]{self.address_string()}[/] for [cyan]{p.name}[/].  [cyan]{p}[/] [red]File Not Found[/].")
             self.send_error(404)
-        return
 
 
 @lru_cache(typed=True)
@@ -97,7 +96,7 @@ def get_le_cert_from_external(webserver_full_url: str):
             utils.exit()
         else:
             return r.content
-    except Exception as e:
+    except Exception as e:  # noQA
         log.exception(f"Exception occured while getting current LE cert from {webserver_full_url}. {e.__class__.__name__}")
         log.exception(e, show=False)
         utils.exit()
@@ -111,7 +110,7 @@ def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL 
         pb = get_le_cert_from_external(full_url)
         log.debug(get_le_cert_from_external.cache_info())
     else:
-        local_paths: List[Path] = [(cppm.webserver.web_root or Path().home()) / cert_p12, Path().cwd() / cert_p12]
+        local_paths: list[Path] = [(cppm.webserver.web_root or Path().home()) / cert_p12, Path().cwd() / cert_p12]
         for p in local_paths:
             if p.exists():
                 pb = p.read_bytes()
@@ -124,7 +123,7 @@ def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL 
         le_p12 = pkcs12.load_key_and_certificates(pb, cert_passphrase.encode("UTF-8"), backend=default_backend())
         le_cert = le_p12[1]
         le_exp = le_cert.not_valid_after_utc
-    except Exception as e:
+    except Exception as e:  # noQA
         _msg = f"[dark_orange3]:warning:[/]  [red]Exception[/]: [dim italic]({e.__class__.__name__}, {e})[/] in [cyan]get_cert_expiration[/]: During Attempt to get expiration from PKCS12 data.  Host: [magenta]{full_url.host}[/] Certificate: [cyan]{cert_p12}[/]."
         if pb and "</html>" in str(pb):
             _msg += f"  Response appears to be html not a PKCS12 certificate.  Perhaps the path ({full_url.path}) or port ({full_url.port}) is wrong."
@@ -136,7 +135,7 @@ def get_cert_expiration(cert_p12: str, cert_passphrase: str, webserver_url: URL 
     return le_exp
 
 
-def _get_server_ids() -> Dict[str, str]:
+def _get_server_ids() -> dict[str, str]:
     """Get list of server ids"""
 
     url = f"https://{cppm.fqdn}/api/cluster/server"
@@ -146,17 +145,17 @@ def _get_server_ids() -> Dict[str, str]:
     try:
         r = requests.get(url, headers=headers, verify=cppm.verify_ssl)
         r.raise_for_status()
-    except Exception as e:
+    except Exception as e:  # NoQA
         log.error(f"Exception: {e.__class__.__name__} {e}")
         utils.exit(code=1)
 
-    servers: List[Dict[str, str]] = r.json().get("_embedded", {}).get("items", {})
+    servers: list[dict[str, str]] = r.json().get("_embedded", {}).get("items", {})
     return {svr.get("name"): svr.get("server_uuid") for svr in sorted(servers, key=lambda s: s["name"])}
 
 
-def start_webserver(port: int = None, serve_only: bool = False) -> HTTPServer | None:
+def start_webserver(port: int | None = None, serve_only: bool = False) -> HTTPServer | None:
     port = port or cppm.webserver.port
-    def _start_webserver(port: int = None):
+    def _start_webserver(port: int | None = None):
         httpd = None
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if s.connect_ex(("127.0.0.1", port)) == 0:
@@ -191,7 +190,7 @@ def start_webserver(port: int = None, serve_only: bool = False) -> HTTPServer | 
     return httpd
 
 
-def _get_update_certs() -> Dict[str, Certificate]:
+def _get_update_certs() -> dict[str, Certificate]:
     server_version = _get_server_version()
     svc_map = {
         "https_rsa": "HTTPS" if server_version.minor < 10 else "HTTPS(RSA)",
@@ -200,13 +199,13 @@ def _get_update_certs() -> Dict[str, Certificate]:
         "radsec": "RadSec"
     }
 
-    flags = [f"--{k.replace('_', '-')}" for k in svc_map.keys()]
+    flags = [f"--{k.replace('_', '-')}" for k in svc_map]
     push_list = [svc for flag, svc in zip(flags, svc_map.keys()) if flag in sys.argv] or list(svc_map.keys())
 
     return {svc_map.get(k, k): v for k, v in cppm.certificates.items() if k in push_list}
 
 
-def get_expiry_from_response(rdict: Dict[str, str]) -> pendulum.DateTime:
+def get_expiry_from_response(rdict: dict[str, str]) -> pendulum.DateTime:
     this_exp = rdict["expiry_date"]  # looks like 'Apr 04, 2025 14:04:11 CDT'
     tzstr = " ".join(this_exp.split()[-1:])  # zz format specifier doesn't work so need to split tz out.  See https://github.com/python-pendulum/pendulum/issues/279
     tzstr = _get_timezone_from_abbr(tzstr)
@@ -223,7 +222,7 @@ class ClearPassURL:
         self.svc = self.url.name
 
     @property
-    def payload(self)-> Dict[str, str]:
+    def payload(self)-> dict[str, str]:
         return {
             "pkcs12_file_url": f"{cppm.webserver.url}/{self.cert_p12}",
             "pkcs12_passphrase": self.cert_passphrase,
@@ -234,7 +233,7 @@ class ClearPassURL:
     def __iter__(self):
         return iter((self.cert_p12, self.cert_passphrase))
 
-def put_certs() -> List[Tuple[str, Service, UpdateRes]] | None:
+def put_certs() -> list[tuple[str, Service, UpdateRes]] | None:
     """Update Certificates on CPPM nodes"""
 
     servers = _get_server_ids()
@@ -243,7 +242,7 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]] | None:
         log.warning("No Certificates configured matching provided usage flags.", log=False)
         return
 
-    req_data: List[ClearPassURL] = []
+    req_data: list[ClearPassURL] = []
     for svc in certs:
         cert_p12 = certs[svc].p12
         cert_passphrase = certs[svc].passphrase
@@ -257,26 +256,30 @@ def put_certs() -> List[Tuple[str, Service, UpdateRes]] | None:
                 _res.append((req.name, req.svc, "error"))
                 log.error(f"[GET: [italic]{r.url}[/]] {r.status_code} {r.reason}")
             else:
-                rdict: Dict[str, str | int | List[str], Dict[str, Any] | bool] = r.json()
+                rdict: dict[str, str | int | list[str], dict[str, Any] | bool] = r.json()
                 this_exp = get_expiry_from_response(rdict)
                 le_exp = get_cert_expiration(*req, webserver_url=cppm.webserver.url)
                 diff = le_exp - this_exp
-                is_self_signed = True if rdict.get("subject", "subject") == rdict.get("issued_by", "") else False
+                is_self_signed = rdict.get("subject", "subject") == rdict.get("issued_by", "")
                 if diff.days > 0 or is_self_signed:
                     if is_self_signed:
                         log.info(f"[bright_green]Updating[/] [dark_olive_green3]{req.name}[/] [cyan]{req.svc}[/] certificate as the current cert is self signed.")
 
                     # tell cppm to download new cert
                     r = requests.put(req.url, json=req.payload, headers=cppm.headers, verify=cppm.verify_ssl)
-                    _res.append((req.name, req.svc, "updated") if r.status_code == 200 else (req.name, req.svc, "error"))
+                    _res.append((req.name, req.svc, "updated") if r.status_code == 200 else (req.name, req.svc, f"{r.status_code} {r.reason}"))
                     _log_func = log.info if r.ok else log.error
-                    _log_func(f"[PUT: [italic]{r.url}[/]] {r.status_code} {r.reason}")
+                    log_msg = f"[PUT: [italic]{r.url}[/]] {r.status_code} {r.reason}"
+                    if r.status_code != 200:
+                        validation_msg = r.json().get("validation_messages", "")
+                        log_msg = f"{log_msg} {validation_msg}".rstrip()
+                    _log_func(log_msg)
                 else:
                     words = ('same', 'as') if diff.days == 0 else ('older', 'than')
                     _msg = f"New cert has {words[0]} expiration {words[1]} {req.name} {req.svc} cert. No Update performed."
                     _res.append((req.name, req.svc, words[0]))
                     log.info(_msg)
-        except Exception as e:
+        except Exception as e:  # NoQA
             _msg = f"[red]Exception[/]: [dim italic]({e.__class__.__name__}, {e})[/] in [cyan]put_certs[/]: During Attempt to update [magenta]{req.name}[/] [cyan]{req.svc}[/] certificate @ URL [cyan]{req.url}[/] with new certificate @ {cppm.webserver.url / req.cert_p12}"
             log.error(_msg, show=True)
             log.exception(e, show=False)
@@ -288,7 +291,7 @@ class Version:
         self.major, self.minor, self.patch, self.build = map(int, version.split("."))
 
     def __str__(self):
-        return ".".join([self.major, self.minor, self.patch, self.build])
+        return f"{self.major}.{self.minor}.{self.patch}.{self.build}"
 
 
 def _get_server_version() -> Version:
@@ -299,16 +302,16 @@ def _get_server_version() -> Version:
     try:
         r = requests.get(url, headers=cppm.headers, verify=cppm.verify_ssl)
         r.raise_for_status()
-    except Exception as e:
+    except Exception as e:  # NoQA
         log.error(f"[red]:warning:[/]  exception: {e}")
-        exit(1)
+        sys.exit(1)
 
     try:
         return Version(r.json().get("cppm_version"))
-    except Exception as e:
+    except Exception as e:  # NoQA
         print(f"[dark_orange3]:warning:[/]  {e.__class__.__class__}, {e}")
         log.error(e)
-        exit(1)
+        sys.exit(1)
 
 
 def _load_pb():
@@ -330,7 +333,7 @@ def do_push(res):
             res_str = "\n".join([f"{svr} ({svc}): {result}" for svr, svc, result in res])
             push_res = push("ClearPass Cert Update", res_str)
             log.debug(f"Push Response:\n{push_res}")
-    except Exception as e:
+    except Exception as e:  # NoQA
         log.exception(f"PushBullet Exception: {e}")
 
 
@@ -376,8 +379,8 @@ def process_args() -> Args:
             utils.exit("Missing argument after [cyan]--port[/] :triangular_flag:")
         except ValueError:
             utils.exit(f"Invalid argument after? [cyan]--port[/] :triangular_flag: {sys.argv[sys.argv.index('--port') + 1]} should be a valid integer.")
-    serve_only = True if "--serve-only" in sys.argv else False
-    push = False if "--no-push" in sys.argv else True
+    serve_only = "--serve-only" in sys.argv
+    push = "--no-push" in sys.argv
     if "--debug" in sys.argv:
         cppm.DEBUG = log.DEBUG = True
     # --https-rsa, --https-ecc, --radsec, and --radius flags are processed in _get_update_certs
@@ -397,6 +400,6 @@ if __name__ == "__main__":
         httpd.shutdown()
 
     if not res:
-        exit(1)
+        sys.exit(1)
     elif args.push:
         do_push(res)
